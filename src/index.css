@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-unet-gray text-gray-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-unet-blue text-white px-6 py-3 rounded-lg font-semibold hover:bg-unet-lightBlue transition-all duration-300;
+  }
+  
+  .btn-secondary {
+    @apply border-2 border-unet-blue text-unet-blue px-6 py-3 rounded-lg font-semibold hover:bg-unet-blue hover:text-white transition-all duration-300;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300;
+  }
+}
