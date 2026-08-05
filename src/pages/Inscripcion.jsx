@@ -84,7 +84,7 @@ function Inscripcion() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     if (!inscripcionHabilitada) {
@@ -94,13 +94,18 @@ function Inscripcion() {
     
     if (validateForm()) {
       const validas = materiasSeleccionadas.filter(m => m.trim() !== '')
-      agregarSolicitud({
+      const response = await agregarSolicitud({
         nombre: formData.nombre,
         cedula: formData.cedula,
         correo: formData.correo,
         materias: validas
       })
-      setSubmitted(true)
+      
+      if (response && response.success) {
+        setSubmitted(true)
+      } else {
+        alert(response?.error || 'Ocurrió un error guardando la solicitud.')
+      }
     }
   }
 

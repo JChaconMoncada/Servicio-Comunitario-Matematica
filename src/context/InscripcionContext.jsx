@@ -65,13 +65,30 @@ export const InscripcionProvider = ({ children }) => {
 
         setSecciones(seccionesFormateadas)
 
-        // Cargar solicitudes
-        const { data: solicitudesData, error: solicitudesError } = await supabase
-          .from('solicitudes')
+        // Cargar materias habilitadas
+        const { data: materiasData, error: materiasError } = await supabase
+          .from('materias_habilitadas')
           .select('*')
         
+        if (!materiasError && materiasData) {
+          const matMap = { ...materiasHabilitadas }
+          materiasData.forEach(m => {
+            matMap[m.nombre] = m.habilitada
+          })
+          setMateriasHabilitadas(matMap)
+        }
+
+        // Cargar solicitudes con sus materias
+        const { data: solicitudesData, error: solicitudesError } = await supabase
+          .from('solicitudes')
+          .select('*, solicitudes_materias(*)')
+        
         if (!solicitudesError) {
-          setSolicitudes(solicitudesData)
+          const solFormateadas = solicitudesData.map(s => ({
+            ...s,
+            materiasSolicitadas: s.solicitudes_materias || []
+          }))
+          setSolicitudes(solFormateadas)
         }
 
       } catch (error) {
@@ -88,11 +105,16 @@ export const InscripcionProvider = ({ children }) => {
     setInscripcionHabilitada(!inscripcionHabilitada)
   }
 
-  const toggleMateria = (materia) => {
+  const toggleMateria = async (materia) => {
+    const nuevoEstado = !materiasHabilitadas[materia]
     setMateriasHabilitadas(prev => ({
       ...prev,
-      [materia]: !prev[materia]
+      [materia]: nuevoEstado
     }))
+    
+    await supabase
+      .from('materias_habilitadas')
+      .upsert({ nombre: materia, habilitada: nuevoEstado })
   }
 
   const getMateriasHabilitadas = () => {
@@ -101,17 +123,66 @@ export const InscripcionProvider = ({ children }) => {
 
   // Agregar nueva solicitud del formulario de estudiante
   const agregarSolicitud = async ({ nombre, cedula, correo, materias }) => {
-    const { data, error } = await supabase
-      .from('solicitudes')
-      .insert([{ nombre, cedula, correo, periodo: periodoActivo }])
-      .select()
-      .single()
-
-    if (!error && data) {
-      setSolicitudes(prev => [data, ...prev])
-      return data
+    // Validar duplicados localmente o en BD
+    // En las solicitudes locales podemos revisar si esta cedula ya tiene alguna de estas materias
+    const yaSolicito = solicitudes.find(s => 
+      s.cedula === cedula && 
+      s.materiasSolicitadas.some(m => materias.includes(m.materia))
+    )
+    
+    if (yaSolicito) {
+      const materiaDuplicada = yaSolicito.materiasSolicitadas.find(m => materias.includes(m.materia)).materia
+      return { success: false, error: `Ya has enviado una solicitud previa para la materia: ${materiaDuplicada}` }
     }
-    return null
+
+    // 1. Verificar si ya existe el estudiante (la cédula es UNIQUE en solicitudes)
+    // Para simplificar y permitir multiples envios en diferentes momentos, si ya existe 
+    // la solicitud principal de ese estudiante, agregamos las nuevas materias a esa solicitud.
+    let solicitudPrincipal = solicitudes.find(s => s.cedula === cedula)
+
+    if (!solicitudPrincipal) {
+      const { data, error } = await supabase
+        .from('solicitudes')
+        .insert([{ nombre, cedula, correo, periodo: periodoActivo }])
+        .select()
+        .single()
+      
+      if (error) return { success: false, error: error.message }
+      solicitudPrincipal = data
+    }
+
+    // 2. Insertar en solicitudes_materias
+    const insertMaterias = materias.map(m => ({
+      solicitud_id: solicitudPrincipal.id,
+      materia: m,
+      estado: 'gris'
+    }))
+
+    const { data: materiasData, error: materiasError } = await supabase
+      .from('solicitudes_materias')
+      .insert(insertMaterias)
+      .select()
+
+    if (materiasError) {
+      // Por si ocurre error de UNIQUE constraint (ya la habia insertado)
+      return { success: false, error: 'Ocurrió un error o ya habías solicitado una de estas materias.' }
+    }
+
+    // 3. Actualizar estado local
+    const nuevaSolicitudCompleta = {
+      ...solicitudPrincipal,
+      materiasSolicitadas: [
+        ...(solicitudPrincipal.materiasSolicitadas || []),
+        ...materiasData
+      ]
+    }
+    
+    setSolicitudes(prev => {
+      const filtered = prev.filter(s => s.cedula !== cedula)
+      return [nuevaSolicitudCompleta, ...filtered]
+    })
+    
+    return { success: true, data: nuevaSolicitudCompleta }
   }
 
   // Crear Sección

@@ -12,6 +12,7 @@ import VistaSeccionDetalle from '../components/VistaSeccionDetalle'
 
 function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userRole, setUserRole] = useState('') // 'admin' o 'asistente'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -67,6 +68,12 @@ function Admin() {
     e.preventDefault()
     if (username === 'admin' && password === 'admin123') {
       setIsAuthenticated(true)
+      setUserRole('admin')
+      setLoginError('')
+    } else if (username === 'asistente' && password === 'asistente123') {
+      setIsAuthenticated(true)
+      setUserRole('asistente')
+      setActiveTab('hojas_calculo') // Force assistant to start on allowed tab
       setLoginError('')
     } else {
       setLoginError('Usuario o contraseña incorrectos')
@@ -75,6 +82,7 @@ function Admin() {
 
   const handleLogout = () => {
     setIsAuthenticated(false)
+    setUserRole('')
     setUsername('')
     setPassword('')
   }
@@ -111,7 +119,7 @@ function Admin() {
                 <div className="w-16 h-16 bg-blue-50 text-unet-blue rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
                   <Lock className="w-8 h-8" />
                 </div>
-                <h1 className="text-3xl font-extrabold text-unet-blue mb-2">Acceso Administrativo</h1>
+                <h1 className="text-3xl font-extrabold text-unet-blue mb-2">Acceso de Personal</h1>
                 <p className="text-gray-600 text-sm">
                   Departamento de Informática - UNET
                 </p>
@@ -187,7 +195,9 @@ function Admin() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
               <div className="flex items-center space-x-2 md:space-x-3">
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-unet-blue">Panel de Administrador</h1>
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-unet-blue">
+                  {userRole === 'admin' ? 'Panel de Jefe de Departamento' : 'Panel de Asistente'}
+                </h1>
                 <span className="bg-blue-100 text-unet-blue text-xs px-2 md:px-3 py-1 rounded-full font-bold">
                   UNET
                 </span>
@@ -207,16 +217,18 @@ function Admin() {
 
           {/* Menú Superior de Navegación de Vistas del Administrador (Navegación del Documento) */}
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-sm">
-            <button
-              onClick={() => setActiveTab('panel')}
-              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
-                activeTab === 'panel'
-                  ? 'bg-unet-blue text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Control General
-            </button>
+            {userRole === 'admin' && (
+              <button
+                onClick={() => setActiveTab('panel')}
+                className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
+                  activeTab === 'panel'
+                    ? 'bg-unet-blue text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Control General
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('hojas_calculo')}
@@ -229,16 +241,18 @@ function Admin() {
               <FileSpreadsheet className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Inscriptos por Materias
             </button>
 
-            <button
-              onClick={() => setActiveTab('crear_secciones')}
-              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
-                activeTab === 'crear_secciones'
-                  ? 'bg-unet-blue text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <PlusCircle className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Crear Secciones
-            </button>
+            {userRole === 'admin' && (
+              <button
+                onClick={() => setActiveTab('crear_secciones')}
+                className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
+                  activeTab === 'crear_secciones'
+                    ? 'bg-unet-blue text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <PlusCircle className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Crear Secciones
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('estado_sesiones')}
@@ -572,7 +586,7 @@ function Admin() {
                 {/* Formulario Sección Presencial (Azul) - Página 4 */}
                 <div className="bg-white rounded-2xl border-2 border-blue-500 shadow-lg overflow-hidden">
                   <div className="bg-blue-600 text-white p-4 font-bold text-lg flex items-center">
-                    <Users className="w-5 h-5 mr-2" /> Formulario Sección Presencial (Azul) - (30 Cupos)
+                    <Users className="w-5 h-5 mr-2" /> Formulario Sección Presencial - (30 Cupos)
                   </div>
                   <form onSubmit={handleCrearPresencial} className="p-6 space-y-4">
                     <div>
@@ -640,7 +654,7 @@ function Admin() {
                 {/* Formulario Sección Virtual (Verde) - Página 4 */}
                 <div className="bg-white rounded-2xl border-2 border-emerald-500 shadow-lg overflow-hidden">
                   <div className="bg-emerald-600 text-white p-4 font-bold text-lg flex items-center">
-                    <Users className="w-5 h-5 mr-2" /> Formulario Sección Virtual (Verde) - (20 Cupos)
+                    <Users className="w-5 h-5 mr-2" /> Formulario Sección Virtual - (20 Cupos)
                   </div>
                   <form onSubmit={handleCrearVirtual} className="p-6 space-y-4">
                     <div>
