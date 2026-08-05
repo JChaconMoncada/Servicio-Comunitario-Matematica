@@ -26,8 +26,10 @@ function Admin() {
   // Estado para el modal de detalle de estudiante
   const [estudianteModal, setEstudianteModal] = useState(null)
 
-  // Estado para la sección seleccionada en vista de detalle de sección
   const [seccionSeleccionadaId, setSeccionSeleccionadaId] = useState(null)
+
+  // Buscador para Inscriptos por Materias
+  const [searchInscriptosMateria, setSearchInscriptosMateria] = useState('')
 
   // Buscador y filtros para Vista de Estado de Sesiones (Página 5)
   const [searchMateria, setSearchMateria] = useState('')
@@ -392,16 +394,30 @@ function Admin() {
               
               {activeTab === 'hojas_calculo' ? (
                 <div>
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-unet-blue">Control de Inscriptos por Materias</h2>
-                    <p className="text-gray-600 text-sm">
-                      Previsualización en formato de hoja de cálculo de los primeros 10 estudiantes por materia. Haz clic en una tabla para abrir el listado completo.
-                    </p>
+                  <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-2xl font-bold text-unet-blue">Control de Inscriptos por Materias</h2>
+                      <p className="text-gray-600 text-sm">
+                        Previsualización en formato de hoja de cálculo de los primeros 10 estudiantes por materia. Haz clic en una tabla para abrir el listado completo.
+                      </p>
+                    </div>
+                    <div className="relative w-full md:w-72 flex-shrink-0">
+                      <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        placeholder="Buscar materia..."
+                        value={searchInscriptosMateria}
+                        onChange={(e) => setSearchInscriptosMateria(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-unet-blue text-sm"
+                      />
+                    </div>
                   </div>
 
                   {/* Grilla de Hojas de Cálculo por Materia (Vista de Página 2) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {["Programación I", "Sistemas Distribuidos", "Compiladores e Intérpretes", "Matemática Discreta"].map((materiaNombre, idx) => {
+                    {Object.keys(materiasHabilitadas)
+                      .filter(m => materiasHabilitadas[m] && m.toLowerCase().includes(searchInscriptosMateria.toLowerCase()))
+                      .map((materiaNombre, idx) => {
                       const filtrados = solicitudes.filter(s => s.materiasSolicitadas.some(m => m.materia === materiaNombre))
                       
                       return (
