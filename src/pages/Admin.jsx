@@ -179,76 +179,76 @@ function Admin() {
   })
 
   return (
-    <div className="min-h-screen py-10 bg-gray-50">
+    <div className="min-h-screen py-6 md:py-10 bg-gray-50">
       <div className="container mx-auto px-4">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           
           {/* Header del Panel con Logout */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
             <div>
-              <div className="flex items-center space-x-3">
-                <h1 className="text-3xl font-extrabold text-unet-blue">Panel de Administrador</h1>
-                <span className="bg-blue-100 text-unet-blue text-xs px-3 py-1 rounded-full font-bold">
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-unet-blue">Panel de Administrador</h1>
+                <span className="bg-blue-100 text-unet-blue text-xs px-2 md:px-3 py-1 rounded-full font-bold">
                   UNET
                 </span>
               </div>
-              <p className="text-gray-600 text-sm mt-1">
+              <p className="text-gray-600 text-xs md:text-sm mt-1">
                 Gestiona el sistema de inscripciones tardías del Departamento de Informática
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center px-4 py-2 border-2 border-red-500 text-red-500 font-bold rounded-xl hover:bg-red-500 hover:text-white transition-all text-sm self-start md:self-auto"
+              className="flex items-center justify-center px-3 md:px-4 py-2 border-2 border-red-500 text-red-500 font-bold rounded-xl hover:bg-red-500 hover:text-white transition-all text-xs md:text-sm self-start md:self-auto"
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
               Cerrar Sesión
             </button>
           </div>
 
           {/* Menú Superior de Navegación de Vistas del Administrador (Navegación del Documento) */}
-          <div className="flex flex-wrap gap-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-sm">
             <button
               onClick={() => setActiveTab('panel')}
-              className={`flex items-center px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
                 activeTab === 'panel'
                   ? 'bg-unet-blue text-white shadow-md'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <Settings className="w-4 h-4 mr-2" /> Control General
+              <Settings className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Control General
             </button>
 
             <button
               onClick={() => setActiveTab('hojas_calculo')}
-              className={`flex items-center px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
                 activeTab === 'hojas_calculo' || activeTab === 'listado_materia'
                   ? 'bg-unet-blue text-white shadow-md'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <FileSpreadsheet className="w-4 h-4 mr-2" /> Inscriptos por Materias
+              <FileSpreadsheet className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Inscriptos por Materias
             </button>
 
             <button
               onClick={() => setActiveTab('crear_secciones')}
-              className={`flex items-center px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
                 activeTab === 'crear_secciones'
                   ? 'bg-unet-blue text-white shadow-md'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <PlusCircle className="w-4 h-4 mr-2" /> Crear Secciones
+              <PlusCircle className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Crear Secciones
             </button>
 
             <button
               onClick={() => setActiveTab('estado_sesiones')}
-              className={`flex items-center px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
                 activeTab === 'estado_sesiones' || activeTab === 'detalle_seccion'
                   ? 'bg-unet-blue text-white shadow-md'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <Grid className="w-4 h-4 mr-2" /> Estado de las Sesiones
+              <Grid className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Estado de las Sesiones
             </button>
           </div>
 

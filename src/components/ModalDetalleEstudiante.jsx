@@ -25,19 +25,19 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
         {/* Body Modal */}
         <div className="p-6 space-y-6">
           {/* Avatar and Main Info Card */}
-          <div className="flex items-center space-x-4 bg-blue-50/60 p-4 rounded-xl border border-blue-100">
-            <div className="w-16 h-16 rounded-full bg-unet-blue text-white flex items-center justify-center text-2xl font-bold shadow-md">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-4 bg-blue-50/60 p-4 rounded-xl border border-blue-100">
+            <div className="w-16 h-16 flex-shrink-0 rounded-full bg-unet-blue text-white flex items-center justify-center text-2xl font-bold shadow-md">
               {estudiante.nombre.charAt(0)}
             </div>
-            <div>
-              <h4 className="text-lg font-bold text-unet-blue">{estudiante.nombre}</h4>
-              <div className="text-sm text-gray-600 space-y-0.5">
-                <p className="flex items-center">
-                  <CreditCard className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+            <div className="w-full">
+              <h4 className="text-lg font-bold text-unet-blue break-words">{estudiante.nombre}</h4>
+              <div className="text-sm text-gray-600 space-y-1 mt-1">
+                <p className="flex items-center justify-center sm:justify-start flex-wrap">
+                  <CreditCard className="w-3.5 h-3.5 mr-1.5 text-gray-400 flex-shrink-0" />
                   <span className="font-semibold mr-1">Cédula:</span> {estudiante.cedula}
                 </p>
-                <p className="flex items-center">
-                  <Mail className="w-3.5 h-3.5 mr-1.5 text-gray-400" />
+                <p className="flex items-center justify-center sm:justify-start flex-wrap break-all">
+                  <Mail className="w-3.5 h-3.5 mr-1.5 text-gray-400 flex-shrink-0" />
                   <span className="font-semibold mr-1">Correo:</span> {estudiante.correo}
                 </p>
               </div>

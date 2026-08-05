@@ -158,21 +158,21 @@ function Inscripcion() {
   }
 
   return (
-    <div className="min-h-screen py-16 bg-gray-50">
+    <div className="min-h-screen py-12 md:py-16 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
           {/* Encabezado según diseño del documento */}
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-extrabold text-unet-blue mb-2">Inscripción Tardía</h1>
-            <p className="text-gray-600">
+          <div className="text-center mb-8 md:mb-10">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-unet-blue mb-2">Inscripción Tardía</h1>
+            <p className="text-gray-600 text-sm md:text-base">
               Completa el formulario para solicitar tu inscripción tardía en el Departamento de Informática
             </p>
           </div>
 
           {!inscripcionHabilitada && (
             <div className="bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 mb-6 flex items-center shadow">
-              <AlertCircle className="w-6 h-6 text-red-500 mr-3 flex-shrink-0" />
-              <p className="text-red-700 font-medium">
+              <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-red-500 mr-3 flex-shrink-0" />
+              <p className="text-red-700 font-medium text-sm md:text-base">
                 Las inscripciones están deshabilitadas temporalmente por el departamento.
               </p>
             </div>
