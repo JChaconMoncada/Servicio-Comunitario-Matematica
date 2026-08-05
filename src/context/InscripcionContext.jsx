@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { informaticaSubjects } from '../data/subjects'
 
 const InscripcionContext = createContext()
@@ -11,155 +12,6 @@ export const useInscripcion = () => {
   return context
 }
 
-// Datos iniciales de prueba para alimentar las hojas de cálculo y tablas
-const initialNombres = [
-  "Omar David Angola Leon", "Juan Carlos Pérez", "Sara María Rodríguez", "Lucía Fernanda Gómez", 
-  "Verónica Alejandra Silva", "Marta Elena Castillo", "Carlos Eduardo Mendoza", "Ana Gabriel Torres",
-  "Luis Fernando Rivas", "María José Gutiérrez", "José Gregorio Hernández", "Andrea Carolina Morales",
-  "Diego Armando Maradona", "Patricia Isabel Benítez", "Gabriel Alejandro Díaz", "Sofía Valentina Ramírez",
-  "Roberto Carlos Gómez", "Daniela Stephania López", "Javier Enrique Martínez", "Camila Andrea Romero",
-  "Miguel Ángel Urbina", "Desiree Suárez", "Hendry Fourl", "Felida Moreno",
-  "Alejandro José Blanco", "Valeria Isabel Medina", "Guillermo Antonio Soto", "Isabella María Vargas",
-  "Enrique José Navarro", "Natalia Beatriz Paredes", "Francisco Javier Aguilar", "Paula Valentina Herrera"
-]
-
-const generateInitialSolicitudes = () => {
-  const solicitudes = []
-  initialNombres.forEach((nombre, idx) => {
-    const cedula = (30023806 - idx).toString()
-    const correo = idx === 0 ? "Omar.angola@unet.edu.ve" : `${nombre.split(' ')[0].toLowerCase()}.${nombre.split(' ')[1]?.toLowerCase() || 'est'}@unet.edu.ve`
-    
-    // Asignar algunas materias variadas
-    const materias = [
-      informaticaSubjects[idx % informaticaSubjects.length],
-      informaticaSubjects[(idx + 3) % informaticaSubjects.length],
-      informaticaSubjects[(idx + 7) % informaticaSubjects.length]
-    ]
-
-    solicitudes.push({
-      id: `sol-${idx + 1}`,
-      nro: idx + 1,
-      nombre,
-      cedula,
-      correo,
-      periodo: idx % 4 === 0 ? "Intensivo 2026" : "Semestre 2026-1",
-      materiasSolicitadas: materias.map((m, mIdx) => {
-        let estado = 'gris' // 'verde' | 'rojo' | 'gris'
-        if (idx < 8) estado = 'verde'
-        else if (idx >= 10 && idx <= 15) estado = 'rojo'
-        else if (idx >= 16 && idx <= 21) estado = 'verde'
-        else if (idx >= 21 && idx <= 22) estado = 'rojo'
-
-        return {
-          materia: m,
-          estado: estado,
-          seccionAsignada: estado === 'verde' ? `Seccion:0${(idx % 4) + 1}` : null
-        }
-      })
-    })
-  })
-  return solicitudes
-}
-
-const initialSecciones = [
-  {
-    id: 'sec-01',
-    materia: 'Programación I',
-    seccion: '04',
-    modalidad: 'Presencial',
-    aula: '15C',
-    profesor: 'Desiree Suarez',
-    capacidadMax: 30,
-    estudiantes: initialNombres.slice(0, 18).map((nombre, i) => ({
-      nro: i + 1,
-      nombre,
-      cedula: (30023806 - i).toString(),
-      correo: `${nombre.split(' ')[0].toLowerCase()}.${nombre.split(' ')[1]?.toLowerCase() || 'est'}@unet.edu.ve`,
-      verificado: i < 10
-    }))
-  },
-  {
-    id: 'sec-02',
-    materia: 'Sistemas Operativos',
-    seccion: '10',
-    modalidad: 'Virtual',
-    aula: 'Aula Virtual 1',
-    profesor: 'Miguel Urbina',
-    capacidadMax: 20,
-    estudiantes: initialNombres.slice(0, 12).map((nombre, i) => ({
-      nro: i + 1,
-      nombre,
-      cedula: (30023806 - i).toString(),
-      correo: `${nombre.split(' ')[0].toLowerCase()}.${nombre.split(' ')[1]?.toLowerCase() || 'est'}@unet.edu.ve`,
-      verificado: i < 5
-    }))
-  },
-  {
-    id: 'sec-03',
-    materia: 'Compiladores e Intérpretes',
-    seccion: '01',
-    modalidad: 'Virtual',
-    aula: 'Aula Virtual 2',
-    profesor: 'Miguel Urbina',
-    capacidadMax: 20,
-    estudiantes: initialNombres.slice(0, 15).map((nombre, i) => ({
-      nro: i + 1,
-      nombre,
-      cedula: (30023806 - i).toString(),
-      correo: `${nombre.split(' ')[0].toLowerCase()}.${nombre.split(' ')[1]?.toLowerCase() || 'est'}@unet.edu.ve`,
-      verificado: true
-    }))
-  },
-  {
-    id: 'sec-04',
-    materia: 'Introducción a la Ingeniería en Informática',
-    seccion: '03',
-    modalidad: 'Presencial',
-    aula: '15C',
-    profesor: 'Felida Moreno',
-    capacidadMax: 30,
-    estudiantes: initialNombres.slice(0, 14).map((nombre, i) => ({
-      nro: i + 1,
-      nombre,
-      cedula: (30023806 - i).toString(),
-      correo: `${nombre.split(' ')[0].toLowerCase()}.${nombre.split(' ')[1]?.toLowerCase() || 'est'}@unet.edu.ve`,
-      verificado: false
-    }))
-  },
-  {
-    id: 'sec-05',
-    materia: 'Teoría General de Sistemas',
-    seccion: '06',
-    modalidad: 'Presencial',
-    aula: '13A',
-    profesor: 'Desiree Suarez',
-    capacidadMax: 30,
-    estudiantes: initialNombres.slice(0, 10).map((nombre, i) => ({
-      nro: i + 1,
-      nombre,
-      cedula: (30023806 - i).toString(),
-      correo: `${nombre.split(' ')[0].toLowerCase()}.${nombre.split(' ')[1]?.toLowerCase() || 'est'}@unet.edu.ve`,
-      verificado: true
-    }))
-  },
-  {
-    id: 'sec-06',
-    materia: 'Sistemas Distribuidos',
-    seccion: '12',
-    modalidad: 'Virtual',
-    aula: 'Aula Virtual 3',
-    profesor: 'Hendry Fourl',
-    capacidadMax: 20,
-    estudiantes: initialNombres.slice(0, 16).map((nombre, i) => ({
-      nro: i + 1,
-      nombre,
-      cedula: (30023806 - i).toString(),
-      correo: `${nombre.split(' ')[0].toLowerCase()}.${nombre.split(' ')[1]?.toLowerCase() || 'est'}@unet.edu.ve`,
-      verificado: false
-    }))
-  }
-]
-
 export const InscripcionProvider = ({ children }) => {
   const [periodoActivo, setPeriodoActivo] = useState('Semestre 2026-1')
   const [inscripcionHabilitada, setInscripcionHabilitada] = useState(true)
@@ -170,8 +22,67 @@ export const InscripcionProvider = ({ children }) => {
     }, {})
   )
   
-  const [solicitudes, setSolicitudes] = useState(generateInitialSolicitudes)
-  const [secciones, setSecciones] = useState(initialSecciones)
+  const [solicitudes, setSolicitudes] = useState([])
+  const [secciones, setSecciones] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  // Cargar datos iniciales desde Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Cargar secciones
+        const { data: seccionesData, error: seccionesError } = await supabase
+          .from('secciones')
+          .select('*')
+        
+        if (seccionesError) throw seccionesError
+
+        // Cargar estudiantes de las secciones
+        const { data: estudiantesData, error: estudiantesError } = await supabase
+          .from('secciones_estudiantes')
+          .select('*')
+        
+        if (estudiantesError) throw estudiantesError
+
+        // Formatear secciones
+        const seccionesFormateadas = seccionesData.map(sec => {
+          const estudiantes = estudiantesData
+            .filter(e => e.seccion_id === sec.id)
+            .sort((a, b) => a.nro - b.nro)
+          return {
+            ...sec,
+            capacidadMax: sec.capacidad_max,
+            estudiantes: estudiantes.map(e => ({
+              id: e.id,
+              nro: e.nro,
+              nombre: e.nombre,
+              cedula: e.cedula,
+              correo: e.correo,
+              verificado: e.verificado
+            }))
+          }
+        })
+
+        setSecciones(seccionesFormateadas)
+
+        // Cargar solicitudes
+        const { data: solicitudesData, error: solicitudesError } = await supabase
+          .from('solicitudes')
+          .select('*')
+        
+        if (!solicitudesError) {
+          setSolicitudes(solicitudesData)
+        }
+
+      } catch (error) {
+        console.error("Error cargando datos de Supabase:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const toggleInscripciones = () => {
     setInscripcionHabilitada(!inscripcionHabilitada)
@@ -189,137 +100,125 @@ export const InscripcionProvider = ({ children }) => {
   }
 
   // Agregar nueva solicitud del formulario de estudiante
-  const agregarSolicitud = ({ nombre, cedula, correo, materias }) => {
-    const nueva = {
-      id: `sol-${Date.now()}`,
-      nro: solicitudes.length + 1,
-      nombre,
-      cedula,
-      correo,
-      periodo: periodoActivo,
-      materiasSolicitadas: materias.map(m => ({
-        materia: m,
-        estado: 'gris',
-        seccionAsignada: null
-      }))
+  const agregarSolicitud = async ({ nombre, cedula, correo, materias }) => {
+    const { data, error } = await supabase
+      .from('solicitudes')
+      .insert([{ nombre, cedula, correo, periodo: periodoActivo }])
+      .select()
+      .single()
+
+    if (!error && data) {
+      setSolicitudes(prev => [data, ...prev])
+      return data
     }
-    setSolicitudes(prev => [nueva, ...prev])
-    return nueva
+    return null
   }
 
   // Crear Sección
-  const crearSeccion = ({ materia, modalidad, seccion, aula, profesor }) => {
+  const crearSeccion = async ({ materia, modalidad, seccion, aula, profesor }) => {
     const capacidadMax = modalidad === 'Virtual' ? 20 : 30
-    const nuevaSeccion = {
-      id: `sec-${Date.now()}`,
-      materia,
-      seccion,
-      modalidad,
-      aula,
-      profesor,
-      capacidadMax,
-      estudiantes: []
+    
+    const { data, error } = await supabase
+      .from('secciones')
+      .insert([{
+        materia,
+        seccion,
+        modalidad,
+        aula,
+        profesor,
+        capacidad_max: capacidadMax
+      }])
+      .select()
+      .single()
+
+    if (!error && data) {
+      const nuevaSeccion = { ...data, estudiantes: [] }
+      setSecciones(prev => [...prev, nuevaSeccion])
+      return nuevaSeccion
     }
-    setSecciones(prev => [...prev, nuevaSeccion])
-    return nuevaSeccion
+    return null
   }
 
-  // Cargar estudiantes a una sección presencial (30) o virtual (20)
-  const cargarEstudiantesASeccion = (seccionId, cantidadMax) => {
-    setSecciones(prevSecciones => {
-      return prevSecciones.map(sec => {
-        if (sec.id !== seccionId) return sec
-
-        // Buscar estudiantes que solicitaron esta materia y cuyo estado es 'gris' o 'rojo'
-        const candidatos = solicitudes.filter(sol => 
-          sol.materiasSolicitadas.some(m => m.materia === sec.materia && (m.estado === 'gris' || m.estado === 'rojo'))
-        )
-
-        const nuevosEstudiantes = [...sec.estudiantes]
-        let añadidos = 0
-
-        for (const sol of candidatos) {
-          if (nuevosEstudiantes.length >= cantidadMax) break
-          if (!nuevosEstudiantes.some(e => e.cedula === sol.cedula)) {
-            nuevosEstudiantes.push({
-              nro: nuevosEstudiantes.length + 1,
-              nombre: sol.nombre,
-              cedula: sol.cedula,
-              correo: sol.correo,
-              verificado: false
-            })
-            añadidos++
-          }
-        }
-
-        return {
-          ...sec,
-          estudiantes: nuevosEstudiantes
-        }
-      })
-    })
-
-    // Actualizar estado en solicitudes a 'verde'
-    setSolicitudes(prevSolicitudes => {
-      const secTarget = secciones.find(s => s.id === seccionId)
-      if (!secTarget) return prevSolicitudes
-
-      return prevSolicitudes.map(sol => {
-        const tieneMateria = sol.materiasSolicitadas.find(m => m.materia === secTarget.materia)
-        if (tieneMateria && (tieneMateria.estado === 'gris' || tieneMateria.estado === 'rojo')) {
-          return {
-            ...sol,
-            materiasSolicitadas: sol.materiasSolicitadas.map(m => {
-              if (m.materia === secTarget.materia) {
-                return { ...m, estado: 'verde', seccionAsignada: secTarget.seccion }
-              }
-              return m
-            })
-          }
-        }
-        return sol
-      })
-    })
+  // Cargar estudiantes a una sección
+  const cargarEstudiantesASeccion = async (seccionId, cantidadMax) => {
+    // Implementación simplificada para añadir localmente por ahora
+    // Para producción, se debe hacer con Supabase Insert
+    alert('Esta función masiva está en desarrollo para Supabase.')
   }
 
   // Autocompletar celdas vacías de una sección
   const autocompletarSeccion = (seccionId) => {
     const secTarget = secciones.find(s => s.id === seccionId)
     if (!secTarget) return
-    cargarEstudiantesASeccion(seccionId, secTarget.capacidadMax)
+    cargarEstudiantesASeccion(seccionId, secTarget.capacidad_max)
   }
 
   // Marcar fila de estudiante como verificado (Verde en la lista)
-  const marcarVerificado = (seccionId, indexEstudiante) => {
-    setSecciones(prev => prev.map(sec => {
-      if (sec.id !== seccionId) return sec
-      const copy = [...sec.estudiantes]
-      if (copy[indexEstudiante]) {
-        copy[indexEstudiante] = { ...copy[indexEstudiante], verificado: true }
-      }
-      return { ...sec, estudiantes: copy }
+  const marcarVerificado = async (seccionId, indexEstudiante) => {
+    const sec = secciones.find(s => s.id === seccionId)
+    if (!sec) return
+    
+    const estudiante = sec.estudiantes[indexEstudiante]
+    if (!estudiante) return
+
+    // Actualizar en Supabase
+    if (estudiante.id) {
+      await supabase
+        .from('secciones_estudiantes')
+        .update({ verificado: true })
+        .eq('id', estudiante.id)
+    }
+
+    // Actualizar estado local
+    setSecciones(prev => prev.map(s => {
+      if (s.id !== seccionId) return s
+      const copy = [...s.estudiantes]
+      copy[indexEstudiante] = { ...copy[indexEstudiante], verificado: true }
+      return { ...s, estudiantes: copy }
     }))
   }
 
-  // Marcar como no se pudo inscribir (dejar la fila vacía)
-  const marcarNoInscrito = (seccionId, indexEstudiante) => {
-    setSecciones(prev => prev.map(sec => {
-      if (sec.id !== seccionId) return sec
-      const copy = sec.estudiantes.filter((_, idx) => idx !== indexEstudiante)
+  // Marcar como no se pudo inscribir (eliminar de la sección)
+  const marcarNoInscrito = async (seccionId, indexEstudiante) => {
+    const sec = secciones.find(s => s.id === seccionId)
+    if (!sec) return
+    
+    const estudiante = sec.estudiantes[indexEstudiante]
+    if (!estudiante) return
+
+    // Eliminar de Supabase
+    if (estudiante.id) {
+      await supabase
+        .from('secciones_estudiantes')
+        .delete()
+        .eq('id', estudiante.id)
+    }
+
+    // Actualizar estado local
+    setSecciones(prev => prev.map(s => {
+      if (s.id !== seccionId) return s
+      const copy = s.estudiantes.filter((_, idx) => idx !== indexEstudiante)
       // Recalcular Nro
       const reindex = copy.map((est, i) => ({ ...est, nro: i + 1 }))
-      return { ...sec, estudiantes: reindex }
+      return { ...s, estudiantes: reindex }
     }))
   }
 
   // Agregar nueva fila (aumentar capacidad)
-  const agregarFilaCupo = (seccionId) => {
-    setSecciones(prev => prev.map(sec => {
-      if (sec.id !== seccionId) return sec
-      return {
-        ...sec,
-        capacidadMax: sec.capacidadMax + 1
-      }
+  const agregarFilaCupo = async (seccionId) => {
+    const sec = secciones.find(s => s.id === seccionId)
+    if (!sec) return
+
+    const nuevaCapacidad = (sec.capacidadMax || sec.capacidad_max) + 1
+
+    await supabase
+      .from('secciones')
+      .update({ capacidad_max: nuevaCapacidad })
+      .eq('id', seccionId)
+
+    setSecciones(prev => prev.map(s => {
+      if (s.id !== seccionId) return s
+      return { ...s, capacidad_max: nuevaCapacidad, capacidadMax: nuevaCapacidad }
     }))
   }
 
@@ -343,11 +242,11 @@ export const InscripcionProvider = ({ children }) => {
         autocompletarSeccion,
         marcarVerificado,
         marcarNoInscrito,
-        agregarFilaCupo
+        agregarFilaCupo,
+        loading
       }}
     >
       {children}
     </InscripcionContext.Provider>
   )
 }
-
