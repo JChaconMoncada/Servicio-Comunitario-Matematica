@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Plus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users, CheckSquare, Square } from 'lucide-react'
 import emailjs from '@emailjs/browser'
 import { useInscripcion } from '../context/InscripcionContext'
+import { pensumMaterias } from '../data/pensum'
 
 export default function VistaSeccionDetalle({ seccionId, onVolver }) {
   const {
@@ -11,7 +12,8 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     autocompletarSeccion,
     marcarVerificado,
     marcarNoInscrito,
-    agregarFilaCupo
+    agregarFilaCupo,
+    rechazarEstudiante
   } = useInscripcion()
 
   const [selectedRows, setSelectedRows] = useState([])
@@ -248,31 +250,96 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                             >
                               <CheckCircle className="w-3 h-3 mr-1" /> Inscrito
                             </button>
-                            {/* Badges de rechazo */}
+                            {/* Badges de rechazo - clickeables */}
                             {(() => {
                               const sol = solicitudes.find(s => s.cedula === est.cedula)
                               if (!sol || !sol.materiasSolicitadas) return null
-                              const materiaEst = sol.materiasSolicitadas.find(m => m.materia === seccion.materia)
-                              if (!materiaEst) return null
                               const badges = []
-                              // También mostrar badges de OTRAS materias rechazadas
                               sol.materiasSolicitadas.forEach(m => {
                                 if (m.estado === 'anaranjado' && !badges.find(b => b.type === 'uc')) {
-                                  badges.push({ type: 'uc', label: 'UC', color: 'bg-orange-500' })
+                                  badges.push({ type: 'uc', label: 'UC', color: 'bg-orange-500 hover:bg-orange-600' })
                                 }
                                 if (m.estado === 'morado' && !badges.find(b => b.type === 'choque')) {
-                                  badges.push({ type: 'choque', label: 'Choque', color: 'bg-purple-600' })
+                                  badges.push({ type: 'choque', label: 'Choque', color: 'bg-purple-600 hover:bg-purple-700' })
                                 }
                                 if (m.estado === 'rojo' && !badges.find(b => b.type === 'indice')) {
-                                  badges.push({ type: 'indice', label: 'Índice', color: 'bg-red-500' })
+                                  badges.push({ type: 'indice', label: 'Índice', color: 'bg-red-500 hover:bg-red-600' })
                                 }
                               })
-                              return badges.map((b, i) => (
-                                <span key={i} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm ${b.color}`}>
-                                  {b.label}
-                                </span>
-                              ))
+                              // Botones para aplicar rechazo rápido si aún no tiene badges
+                              const materiaEnSeccion = sol.materiasSolicitadas.find(m => m.materia === seccion.materia)
+                              const yaRechazada = materiaEnSeccion && ['anaranjado', 'morado', 'rojo'].includes(materiaEnSeccion.estado)
+                              
+                              return (
+                                <>
+                                  {badges.map((b, i) => (
+                                    <span key={i} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm cursor-default ${b.color}`}>
+                                      {b.label}
+                                    </span>
+                                  ))}
+                                  {!yaRechazada && (
+                                    <>
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation()
+                                          const infoMateria = pensumMaterias.find(p => p.nombre === seccion.materia)
+                                          const uc = infoMateria ? infoMateria.uc : 0
+                                          if (window.confirm(`¿Rechazar a ${est.nombre} por Exceso de UC para materias de ${uc} UC?`)) {
+                                            await rechazarEstudiante(sol, [uc], `Rechazado por exceso de UC para materias de ${uc} UC en la materia ${seccion.materia}.`, 'exceso_uc')
+                                          }
+                                        }}
+                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-orange-400 hover:bg-orange-600 transition-all cursor-pointer"
+                                        title="Rechazar por Exceso de UC"
+                                      >
+                                        UC
+                                      </button>
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation()
+                                          const allUCs = [...new Set(sol.materiasSolicitadas.map(m => {
+                                            const info = pensumMaterias.find(p => p.nombre === m.materia)
+                                            return info ? info.uc : -1
+                                          }).filter(u => u >= 0))]
+                                          if (window.confirm(`¿Rechazar a ${est.nombre} por Choque de Horario en todas sus materias solicitadas?`)) {
+                                            await rechazarEstudiante(sol, allUCs, `Rechazado por choque de horario.`, 'choque_horario')
+                                          }
+                                        }}
+                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-purple-400 hover:bg-purple-600 transition-all cursor-pointer"
+                                        title="Rechazar por Choque de Horario"
+                                      >
+                                        Choque
+                                      </button>
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation()
+                                          const infoMateria = pensumMaterias.find(p => p.nombre === seccion.materia)
+                                          const uc = infoMateria ? infoMateria.uc : 0
+                                          if (window.confirm(`¿Rechazar a ${est.nombre} por Bajo Índice para materias de ${uc} UC?`)) {
+                                            await rechazarEstudiante(sol, [uc], `Rechazado por bajo índice académico para materias de ${uc} UC en la materia ${seccion.materia}.`, 'bajo_indice')
+                                          }
+                                        }}
+                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-red-400 hover:bg-red-600 transition-all cursor-pointer"
+                                        title="Rechazar por Bajo Índice"
+                                      >
+                                        Índice
+                                      </button>
+                                    </>
+                                  )}
+                                </>
+                              )
                             })()}
+                            <button
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if(window.confirm('¿Deseas marcar que no se pudo inscribir y eliminarlo de la lista?')) {
+                                  marcarNoInscrito(seccion.id, index); 
+                                }
+                              }}
+                              className="inline-flex items-center justify-center py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold shadow transition-all"
+                              title="No se pudo inscribir"
+                            >
+                              <UserX className="w-3 h-3 mr-1" /> No inscrito
+                            </button>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-center print:hidden">
