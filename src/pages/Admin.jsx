@@ -941,7 +941,7 @@ function Admin() {
                               setActiveTab('detalle_seccion')
                             }}
                             className={`bg-white rounded-2xl border-2 shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition-all group relative ${
-                              sec.modalidad === 'Virtual' ? 'border-emerald-400' : 'border-blue-400'
+                              sec.aprobada ? 'border-amber-400 ring-2 ring-amber-300/50' : sec.modalidad === 'Virtual' ? 'border-emerald-400' : 'border-blue-400'
                             }`}
                           >
                             {/* Botón X de eliminar sección */}
@@ -953,7 +953,7 @@ function Admin() {
                                 }
                               }}
                               className={`absolute -top-1 -left-1 z-10 w-7 h-7 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 ${
-                                sec.modalidad === 'Virtual' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'
+                                sec.aprobada ? 'bg-amber-600 hover:bg-amber-700' : sec.modalidad === 'Virtual' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'
                               }`}
                               title="Eliminar Sección"
                             >
@@ -961,10 +961,17 @@ function Admin() {
                             </button>
 
                             <div className={`p-4 pl-7 text-white font-bold flex justify-between items-start ${
-                              sec.modalidad === 'Virtual' ? 'bg-emerald-600' : 'bg-blue-600'
+                              sec.aprobada ? 'bg-gradient-to-r from-amber-600 to-amber-700' : sec.modalidad === 'Virtual' ? 'bg-emerald-600' : 'bg-blue-600'
                             }`}>
                               <div>
-                                <h4 className="text-base leading-tight font-extrabold">{sec.materia}</h4>
+                                <div className="flex items-center space-x-1.5">
+                                  <h4 className="text-base leading-tight font-extrabold">{sec.materia}</h4>
+                                  {sec.aprobada && (
+                                    <span className="bg-amber-800/80 text-white text-[10px] px-2 py-0.5 rounded-full font-extrabold flex items-center gap-0.5">
+                                      <Lock className="w-3 h-3" /> Full Aprobada
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-xs text-white/90 font-medium mt-1">
                                   Seccion:{sec.seccion} | {sec.aula} | Prof: {sec.profesor}
                                 </div>

@@ -54,6 +54,7 @@ export const InscripcionProvider = ({ children }) => {
           return {
             ...sec,
             capacidadMax: sec.capacidad_max,
+            aprobada: sec.aprobada || false,
             estudiantes: estudiantes.map(e => ({
               id: e.id,
               nro: e.nro,
@@ -462,6 +463,124 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, count: materiasARechazar.length }
   }
 
+  // Aprobar Sección (bloquea la sección y resetea a los estudiantes con choque de horario 'morado' a 'gris')
+  const aprobarSeccion = async (seccionId) => {
+    const secTarget = secciones.find(s => s.id === seccionId)
+    if (!secTarget) return { success: false, error: 'Sección no encontrada' }
+
+    // 1. Intentar actualizar en Supabase (si existe la columna aprobada)
+    try {
+      await supabase
+        .from('secciones')
+        .update({ aprobada: true })
+        .eq('id', seccionId)
+    } catch (err) {
+      console.warn('Columna aprobada en BD:', err)
+    }
+
+    // 2. Buscar materiasSolicitadas de esta materia con estado 'morado' (choque) para resetear a 'gris'
+    const idsMorados = []
+    solicitudes.forEach(sol => {
+      sol.materiasSolicitadas?.forEach(m => {
+        if (m.materia === secTarget.materia && m.estado === 'morado') {
+          idsMorados.push(m.id)
+        }
+      })
+    })
+
+    if (idsMorados.length > 0) {
+      await supabase
+        .from('solicitudes_materias')
+        .update({ estado: 'gris' })
+        .in('id', idsMorados)
+    }
+
+    // 3. Actualizar estado local de secciones
+    setSecciones(prev => prev.map(s => {
+      if (s.id !== seccionId) return s
+      return { ...s, aprobada: true }
+    }))
+
+    // 4. Actualizar estado local de solicitudes (morado -> gris)
+    if (idsMorados.length > 0) {
+      setSolicitudes(prev => prev.map(sol => {
+        const tieneMorado = sol.materiasSolicitadas?.some(m => idsMorados.includes(m.id))
+        if (!tieneMorado) return sol
+        const mats = sol.materiasSolicitadas.map(m => {
+          if (idsMorados.includes(m.id)) {
+            return { ...m, estado: 'gris' }
+          }
+          return m
+        })
+        return { ...sol, materiasSolicitadas: mats }
+      }))
+    }
+
+    return { success: true, countChoquesReseteados: idsMorados.length }
+  }
+
+  // Generar 60 solicitudes de prueba para una materia
+  const generarDatosPrueba = async (materiaTarget = 'Introducción a la Ingeniería en Informática', cantidad = 60) => {
+    const nombresDemo = [
+      'Alejandro Pérez', 'María Rodríguez', 'Carlos Gómez', 'Ana Fernández', 'José Luis Martínez',
+      'Daniela Sánchez', 'Gabriel López', 'Patricia Díaz', 'Luis Eduardo Torres', 'Sofia Benítez',
+      'Ricardo Mendoza', 'Valentina Ruiz', 'Fernando Castillo', 'Camila Morales', 'Javier Gutiérrez',
+      'Andrea Romero', 'Diego Navarro', 'Isabella Flores', 'Manuel Acosta', 'Gabriela Gil',
+      'Samuel Vargas', 'Lucía Paredes', 'Esteban Silva', 'Victoria Blanco', 'Mateo Medina',
+      'Paula Suárez', 'Santiago Molina', 'Natalia Delgado', 'Sebastián Rojas', 'Elena Castro'
+    ]
+
+    const timestamp = Date.now().toString().slice(-5)
+    const solicitudesInsert = []
+    
+    for (let i = 1; i <= cantidad; i++) {
+      const idxNombre = (i - 1) % nombresDemo.length
+      const sufijo = Math.floor((i - 1) / nombresDemo.length) > 0 ? ` ${Math.floor((i - 1) / nombresDemo.length) + 1}` : ''
+      const cedula = `${30000000 + (i * 100) + Math.floor(Math.random() * 90)}`
+      const nombre = `${nombresDemo[idxNombre]}${sufijo}`
+      const correo = `estudiante.demo.${timestamp}.${i}@unet.edu.ve`
+      solicitudesInsert.push({ nombre, cedula, correo, periodo: periodoActivo })
+    }
+
+    // Insertar en Supabase solicitudes
+    const { data: solData, error: solError } = await supabase
+      .from('solicitudes')
+      .insert(solicitudesInsert)
+      .select()
+
+    if (solError) {
+      console.error('Error creando datos de prueba:', solError)
+      return { success: false, error: solError.message }
+    }
+
+    // Insertar solicitudes_materias para cada una
+    const matInsert = solData.map(s => ({
+      solicitud_id: s.id,
+      materia: materiaTarget,
+      estado: 'gris'
+    }))
+
+    const { data: matData, error: matError } = await supabase
+      .from('solicitudes_materias')
+      .insert(matInsert)
+      .select()
+
+    if (matError) {
+      console.error('Error insertando materias de prueba:', matError)
+      return { success: false, error: matError.message }
+    }
+
+    // Actualizar estado local
+    const nuevasSolicitudes = solData.map(s => ({
+      ...s,
+      materiasSolicitadas: matData.filter(m => m.solicitud_id === s.id)
+    }))
+
+    setSolicitudes(prev => [...nuevasSolicitudes, ...prev])
+
+    return { success: true, count: solData.length }
+  }
+
   return (
     <InscripcionContext.Provider
       value={{
@@ -485,6 +604,8 @@ export const InscripcionProvider = ({ children }) => {
         marcarNoInscrito,
         agregarFilaCupo,
         rechazarEstudiante,
+        aprobarSeccion,
+        generarDatosPrueba,
         loading
       }}
     >

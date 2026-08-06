@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Minus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users, CheckSquare, Square } from 'lucide-react'
+import { Plus, Minus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users, CheckSquare, Square, Lock, ShieldCheck, Zap } from 'lucide-react'
 import emailjs from '@emailjs/browser'
 import { useInscripcion } from '../context/InscripcionContext'
 import { pensumMaterias } from '../data/pensum'
@@ -13,12 +13,15 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     marcarVerificado,
     marcarNoInscrito,
     agregarFilaCupo,
-    rechazarEstudiante
+    rechazarEstudiante,
+    aprobarSeccion,
+    generarDatosPrueba
   } = useInscripcion()
 
   const [selectedRows, setSelectedRows] = useState([])
   const [emailNotice, setEmailNotice] = useState(null)
   const [isSendingEmails, setIsSendingEmails] = useState(false)
+  const [isGenerandoDemo, setIsGenerandoDemo] = useState(false)
 
   const seccion = secciones.find(s => s.id === seccionId)
 
@@ -45,10 +48,12 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
 
 
   const handleAgregarFila = () => {
+    if (seccion?.aprobada) return
     agregarFilaCupo(seccion.id)
   }
 
   const handleQuitarFila = async () => {
+    if (seccion?.aprobada) return
     const capacidadActual = seccion.capacidadMax || seccion.capacidad_max
     if (capacidadActual <= seccion.estudiantes.length) {
       alert('No puedes quitar cupos. Hay estudiantes ocupando todos los cupos actuales.')
@@ -58,12 +63,36 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
       alert('La capacidad mínima es 1.')
       return
     }
-    // Importar supabase directamente para la actualización
     const { supabase } = await import('../lib/supabase')
     const nuevaCapacidad = capacidadActual - 1
     await supabase.from('secciones').update({ capacidad_max: nuevaCapacidad }).eq('id', seccion.id)
-    // Actualizar localmente via agregarFilaCupo NO sirve, usar fuerza bruta con reload
     window.location.reload()
+  }
+
+  const handleAprobarSeccion = async () => {
+    if (seccion?.aprobada) return
+    if (!window.confirm(`¿Estás seguro de APROBAR y CERRAR la Sección ${seccion.seccion} de ${seccion.materia}?\n\n- La sección quedará bloqueada con candado 🔒.\n- Los estudiantes con Choque de Horario (morado) de esta materia volverán a estar 'sin asignar' para ser colocados en otra sección.`)) {
+      return
+    }
+
+    const res = await aprobarSeccion(seccion.id)
+    if (res.success) {
+      alert(`¡Sección Aprobada y Bloqueada! 🔒\n\nSe han reseteado ${res.countChoquesReseteados} estudiante(s) con Choque de Horario a estado 'sin asignar' para ser ubicados en otras secciones.`)
+    } else {
+      alert(res.error || 'Error al aprobar la sección')
+    }
+  }
+
+  const handleGenerarDatosPrueba = async () => {
+    if (!window.confirm(`¿Deseas generar 60 solicitudes ficticias de prueba para "${seccion.materia}"?`)) return
+    setIsGenerandoDemo(true)
+    const res = await generarDatosPrueba(seccion.materia, 60)
+    setIsGenerandoDemo(false)
+    if (res.success) {
+      alert(`¡Éxito! Se han creado ${res.count} solicitudes de prueba para "${seccion.materia}". Ahora puedes hacer clic en 'Autocompletar Sección'.`)
+    } else {
+      alert(res.error || 'Error creando datos de prueba')
+    }
   }
 
   // --- Selección Múltiple ---
@@ -167,6 +196,11 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
               }`}>
                 {seccion.modalidad}
               </span>
+              {seccion.aprobada && (
+                <span className="px-3 py-1 text-xs font-bold rounded-full bg-amber-500 text-white flex items-center gap-1 shadow-sm uppercase tracking-wider">
+                  <Lock className="w-3.5 h-3.5" /> Sección Full Aprobada
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap gap-4 text-sm text-blue-100 font-medium mt-2">
               <span><strong>Sección:</strong> {seccion.seccion}</span>
@@ -186,8 +220,22 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
               </p>
             </div>
           </div>
-        </div>
       </div>
+
+      {/* Banner de Sección Aprobada */}
+      {seccion.aprobada && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-center space-x-3 text-amber-900 shadow-sm print:hidden animate-fadeIn">
+          <Lock className="w-6 h-6 text-amber-600 flex-shrink-0" />
+          <div>
+            <h4 className="font-extrabold text-sm flex items-center gap-1">
+              Sección Full Aprobada (Cerrada)
+            </h4>
+            <p className="text-xs text-amber-700 font-medium">
+              Esta sección está aprobada y bloqueada en modo de solo lectura. Los estudiantes con Choque de Horario de esta materia han sido reseteados a estado sin asignar para ingresar a otras secciones.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Botón + para agregar fila/cupo adicional (Página 6 y 7) */}
       <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden">
@@ -197,24 +245,26 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
             (Haz clic en una fila para seleccionarla)
           </span>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleQuitarFila}
-            title="Quitar un cupo"
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-all shadow"
-          >
-            <Minus className="w-4 h-4" />
-            <span>Quitar Cupo (-)</span>
-          </button>
-          <button
-            onClick={handleAgregarFila}
-            title="Agregar fila para aumentar cupo"
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-gray-800 hover:bg-black text-white text-xs font-bold rounded-lg transition-all shadow"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Agregar Cupo (+)</span>
-          </button>
-        </div>
+        {!seccion.aprobada && (
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleQuitarFila}
+              title="Quitar un cupo"
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-all shadow"
+            >
+              <Minus className="w-4 h-4" />
+              <span>Quitar Cupo (-)</span>
+            </button>
+            <button
+              onClick={handleAgregarFila}
+              title="Agregar fila para aumentar cupo"
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-gray-800 hover:bg-black text-white text-xs font-bold rounded-lg transition-all shadow"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Agregar Cupo (+)</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tabla de la Sección (Página 6) */}
@@ -310,8 +360,8 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                                       Índice
                                     </span>
                                   )}
-                                  {/* Botones de acción rápida (solo si esta materia aún no fue rechazada) */}
-                                  {!yaRechazadaEstaMateria && (
+                                  {/* Botones de acción rápida (solo si esta materia aún no fue rechazada y la sección no está aprobada) */}
+                                  {!yaRechazadaEstaMateria && !seccion.aprobada && (
                                     <>
                                       {!tieneUC && (
                                         <button
@@ -427,7 +477,10 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           {seccion.modalidad === 'Presencial' ? (
             <button
               onClick={handleCargarPresencial}
-              className="flex flex-col items-center justify-center p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all font-bold hover:shadow-lg"
+              disabled={seccion.aprobada}
+              className={`flex flex-col items-center justify-center p-4 text-white rounded-xl shadow-md transition-all font-bold ${
+                seccion.aprobada ? 'bg-gray-400 cursor-not-allowed opacity-60' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
+              }`}
             >
               <Users className="w-6 h-6 mb-1" />
               <span>Cargar Sección Presencial</span>
@@ -436,7 +489,10 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           ) : (
             <button
               onClick={handleCargarVirtual}
-              className="flex flex-col items-center justify-center p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition-all font-bold hover:shadow-lg"
+              disabled={seccion.aprobada}
+              className={`flex flex-col items-center justify-center p-4 text-white rounded-xl shadow-md transition-all font-bold ${
+                seccion.aprobada ? 'bg-gray-400 cursor-not-allowed opacity-60' : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg'
+              }`}
             >
               <Users className="w-6 h-6 mb-1" />
               <span>Cargar Sección Virtual</span>
@@ -447,11 +503,43 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           {/* Autocompletar Sección */}
           <button
             onClick={handleAutocompletar}
-            className="flex flex-col items-center justify-center p-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all font-bold hover:shadow-lg"
+            disabled={seccion.aprobada}
+            className={`flex flex-col items-center justify-center p-4 text-white rounded-xl shadow-md transition-all font-bold ${
+              seccion.aprobada ? 'bg-gray-400 cursor-not-allowed opacity-60' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg'
+            }`}
           >
             <RefreshCw className="w-6 h-6 mb-1" />
             <span>Autocompletar Sección</span>
             <span className="text-xs text-indigo-200 font-normal">(Llenar celdas vacías)</span>
+          </button>
+
+        </div>
+
+        {/* Botón de Aprobar Sección y Botón de Datos de Prueba */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          
+          <button
+            onClick={handleAprobarSeccion}
+            disabled={seccion.aprobada}
+            className={`flex items-center justify-center space-x-2 py-3.5 px-4 font-extrabold rounded-xl shadow-md transition-all ${
+              seccion.aprobada
+                ? 'bg-amber-100 text-amber-800 border-2 border-amber-300 cursor-default'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-lg'
+            }`}
+          >
+            {seccion.aprobada ? <Lock className="w-5 h-5 text-amber-700" /> : <ShieldCheck className="w-5 h-5" />}
+            <span>{seccion.aprobada ? '🔒 Sección Full Aprobada' : 'Aprobar y Cerrar Sección ✓'}</span>
+          </button>
+
+          <button
+            onClick={handleGenerarDatosPrueba}
+            disabled={isGenerandoDemo}
+            className={`flex items-center justify-center space-x-2 py-3.5 px-4 font-extrabold rounded-xl shadow-md transition-all text-white ${
+              isGenerandoDemo ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-700 hover:bg-purple-800 hover:shadow-lg'
+            }`}
+          >
+            {isGenerandoDemo ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 text-yellow-300" />}
+            <span>{isGenerandoDemo ? 'Generando...' : '⚡ Generar 60 Datos de Prueba'}</span>
           </button>
 
         </div>
