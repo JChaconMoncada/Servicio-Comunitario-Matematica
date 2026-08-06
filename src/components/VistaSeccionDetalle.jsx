@@ -6,6 +6,7 @@ import { useInscripcion } from '../context/InscripcionContext'
 export default function VistaSeccionDetalle({ seccionId, onVolver }) {
   const {
     secciones,
+    solicitudes,
     cargarEstudiantesASeccion,
     autocompletarSeccion,
     marcarVerificado,
@@ -238,26 +239,41 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                         <td className="py-3 px-4 text-unet-blue underline">
                           {est.correo}
                         </td>
-                        <td className="py-3 px-4 text-center space-x-2 print:hidden">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); marcarVerificado(seccion.id, index); }}
-                            className="inline-flex items-center justify-center py-1 px-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold shadow transition-all"
-                            title="Inscrito"
-                          >
-                            <CheckCircle className="w-3 h-3 mr-1" /> Inscrito
-                          </button>
-                          <button
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              if(window.confirm('¿Deseas marcar que no se pudo inscribir y eliminarlo de la lista?')) {
-                                marcarNoInscrito(seccion.id, index); 
-                              }
-                            }}
-                            className="inline-flex items-center justify-center py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-bold shadow transition-all"
-                            title="No se pudo inscribir"
-                          >
-                            <UserX className="w-3 h-3 mr-1" /> No inscrito
-                          </button>
+                        <td className="py-3 px-4 text-center space-x-1 print:hidden">
+                          <div className="flex flex-wrap items-center justify-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); marcarVerificado(seccion.id, index); }}
+                              className="inline-flex items-center justify-center py-1 px-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold shadow transition-all"
+                              title="Inscrito"
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" /> Inscrito
+                            </button>
+                            {/* Badges de rechazo */}
+                            {(() => {
+                              const sol = solicitudes.find(s => s.cedula === est.cedula)
+                              if (!sol || !sol.materiasSolicitadas) return null
+                              const materiaEst = sol.materiasSolicitadas.find(m => m.materia === seccion.materia)
+                              if (!materiaEst) return null
+                              const badges = []
+                              // También mostrar badges de OTRAS materias rechazadas
+                              sol.materiasSolicitadas.forEach(m => {
+                                if (m.estado === 'anaranjado' && !badges.find(b => b.type === 'uc')) {
+                                  badges.push({ type: 'uc', label: 'UC', color: 'bg-orange-500' })
+                                }
+                                if (m.estado === 'morado' && !badges.find(b => b.type === 'choque')) {
+                                  badges.push({ type: 'choque', label: 'Choque', color: 'bg-purple-600' })
+                                }
+                                if (m.estado === 'rojo' && !badges.find(b => b.type === 'indice')) {
+                                  badges.push({ type: 'indice', label: 'Índice', color: 'bg-red-500' })
+                                }
+                              })
+                              return badges.map((b, i) => (
+                                <span key={i} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm ${b.color}`}>
+                                  {b.label}
+                                </span>
+                              ))
+                            })()}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-center print:hidden">
                           {est.verificado ? (

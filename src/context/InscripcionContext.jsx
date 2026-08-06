@@ -257,7 +257,8 @@ export const InscripcionProvider = ({ children }) => {
       return sol.materiasSolicitadas && sol.materiasSolicitadas.some(m => 
         m.materia === sec.materia && 
         m.estado !== 'rojo' && 
-        m.estado !== 'anaranjado'
+        m.estado !== 'anaranjado' &&
+        m.estado !== 'morado'
       )
     })
 
@@ -411,7 +412,7 @@ export const InscripcionProvider = ({ children }) => {
     }
 
     const idsARechazar = materiasARechazar.map(m => m.id)
-    const estadoRechazo = motivo === 'bajo_indice' ? 'rojo' : 'anaranjado'
+    const estadoRechazo = motivo === 'bajo_indice' ? 'rojo' : motivo === 'choque_horario' ? 'morado' : 'anaranjado'
 
     // 1. Actualizar en Supabase (solicitudes_materias)
     const { error } = await supabase

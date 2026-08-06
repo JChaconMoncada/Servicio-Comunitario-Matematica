@@ -1,6 +1,7 @@
 import React from 'react'
 import { X, UserCheck, Mail, CreditCard, BookOpen, AlertTriangle } from 'lucide-react'
 import { useInscripcion } from '../context/InscripcionContext'
+import { pensumMaterias } from '../data/pensum'
 
 export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   const { rechazarEstudiante } = useInscripcion()
@@ -12,7 +13,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   if (!estudiante) return null
 
   const handleRechazar = async () => {
-    if (!reglaUC) {
+    if (!reglaUC && motivoRechazo !== 'choque_horario') {
       alert("Por favor selecciona una regla de restricción de UC.")
       return
     }
@@ -23,9 +24,18 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
 
     setProcesando(true)
     let ucsProhibidas = []
-    if (reglaUC === '4') ucsProhibidas = [4]
-    else if (reglaUC === '3_y_4') ucsProhibidas = [3, 4]
-    else if (reglaUC === '2_3_y_4') ucsProhibidas = [2, 3, 4]
+    if (motivoRechazo === 'choque_horario') {
+      // Para choque de horario, rechazar TODAS las materias solicitadas
+      const todasLasUC = [...new Set(estudiante.materiasSolicitadas.map(m => {
+        const info = pensumMaterias.find(p => p.nombre === m.materia)
+        return info ? info.uc : -1
+      }).filter(uc => uc >= 0))]
+      ucsProhibidas = todasLasUC
+    } else {
+      if (reglaUC === '4') ucsProhibidas = [4]
+      else if (reglaUC === '3_y_4') ucsProhibidas = [3, 4]
+      else if (reglaUC === '2_3_y_4') ucsProhibidas = [2, 3, 4]
+    }
 
     const result = await rechazarEstudiante(estudiante, ucsProhibidas, razonRechazo, motivoRechazo)
     setProcesando(false)
@@ -97,10 +107,13 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                     badgeText = 'Con Cupo'
                   } else if (item.estado === 'rojo') {
                     badgeColor = 'bg-red-500 text-white font-bold'
-                    badgeText = 'Rechazado (Bajo Índice)' // Actualizado para reflejar el rechazo por bajo índice
+                    badgeText = 'Rechazado (Bajo Índice)'
                   } else if (item.estado === 'anaranjado') {
                     badgeColor = 'bg-orange-500 text-white font-bold'
                     badgeText = 'Rechazado (Exceso UC)'
+                  } else if (item.estado === 'morado') {
+                    badgeColor = 'bg-purple-600 text-white font-bold'
+                    badgeText = 'Rechazado (Choque de Horario)'
                   }
 
                   return (
@@ -145,9 +158,11 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
               >
                 <option value="exceso_uc">Exceso de Unidades de Crédito (Anaranjado)</option>
                 <option value="bajo_indice">Bajo Índice (Rojo)</option>
+                <option value="choque_horario">Choque de Horario (Morado)</option>
               </select>
             </div>
 
+            {motivoRechazo !== 'choque_horario' && (
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Restricción a aplicar:</label>
               <select 
@@ -161,6 +176,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                 <option value="2_3_y_4">No puede ver materias de 2, 3 y 4 UC</option>
               </select>
             </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Razón del rechazo (para el correo):</label>
