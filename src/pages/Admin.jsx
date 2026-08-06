@@ -201,7 +201,7 @@ function Admin() {
         <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           
           {/* Header del Panel con Logout */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-200 print:hidden">
             <div>
               <div className="flex items-center space-x-2 md:space-x-3">
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-unet-blue">
@@ -225,7 +225,7 @@ function Admin() {
           </div>
 
           {/* Menú Superior de Navegación de Vistas del Administrador (Navegación del Documento) */}
-          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 bg-white p-2 rounded-2xl border border-gray-200 shadow-sm print:hidden">
             {userRole === 'admin' && (
               <button
                 onClick={() => setActiveTab('panel')}
@@ -535,7 +535,13 @@ function Admin() {
                             .filter(s => s.materiasSolicitadas.some(m => m.materia === materiaSeleccionadaDetalle))
                             .map((sol, index) => {
                               const matObj = sol.materiasSolicitadas.find(m => m.materia === materiaSeleccionadaDetalle)
-                              const estado = matObj ? matObj.estado : 'gris'
+                              
+                              const estaVerificado = secciones.some(sec => 
+                                sec.materia === materiaSeleccionadaDetalle && 
+                                sec.estudiantes.some(e => e.cedula === sol.cedula && e.verificado)
+                              )
+
+                              const estado = estaVerificado ? 'verde' : (matObj ? matObj.estado : 'gris')
 
                               return (
                                 <tr key={index} className="hover:bg-blue-50/40 transition-colors">

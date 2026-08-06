@@ -68,13 +68,25 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
       {/* Botón Volver */}
       <button 
         onClick={onVolver}
-        className="flex items-center text-unet-blue hover:text-blue-800 font-semibold mb-2 transition-colors"
+        className="flex items-center text-unet-blue hover:text-blue-800 font-semibold mb-2 transition-colors print:hidden"
       >
         <ArrowLeft className="w-5 h-5 mr-1" /> Volver al estado de secciones
       </button>
 
+      {/* Título de Impresión */}
+      <div className="hidden print:block text-center mb-8">
+        <h2 className="text-3xl font-extrabold text-black mb-2">{seccion.materia}</h2>
+        <div className="text-gray-700 font-medium text-lg">
+          <span>Sección: {seccion.seccion}</span>
+          <span className="mx-2">•</span>
+          <span>Aula: {seccion.aula}</span>
+          <span className="mx-2">•</span>
+          <span>Profesor: {seccion.profesor}</span>
+        </div>
+      </div>
+
       {/* Encabezado de la Sección (Página 6 del documento PDF) */}
-      <div className="bg-gradient-to-r from-unet-blue to-blue-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-unet-blue to-blue-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden print:hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center space-x-3 mb-1">
@@ -107,7 +119,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
       </div>
 
       {/* Botón + para agregar fila/cupo adicional (Página 6 y 7) */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden">
         <div className="flex items-center space-x-2 text-sm text-gray-600">
           <span className="font-bold text-gray-800">Listado de Inscritos en la Sección</span>
           <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-500">
@@ -129,13 +141,13 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-unet-blue text-white text-xs font-bold uppercase tracking-wider">
+              <tr className="bg-unet-blue print:text-black print:bg-gray-200 text-white text-xs font-bold uppercase tracking-wider">
                 <th className="py-3.5 px-4 text-center w-16">Nro</th>
                 <th className="py-3.5 px-4">Nombre</th>
                 <th className="py-3.5 px-4">Cédula</th>
                 <th className="py-3.5 px-4">Correo Electrónico</th>
-                <th className="py-3.5 px-4 text-center">Estudiante</th>
-                <th className="py-3.5 px-4 text-center">Estado Verificación</th>
+                <th className="py-3.5 px-4 text-center print:hidden">Estudiante</th>
+                <th className="py-3.5 px-4 text-center print:hidden">Estado Verificación</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">
@@ -167,7 +179,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                         <td className="py-3 px-4 text-unet-blue underline">
                           {est.correo}
                         </td>
-                        <td className="py-3 px-4 text-center space-x-2">
+                        <td className="py-3 px-4 text-center space-x-2 print:hidden">
                           <button
                             onClick={(e) => { e.stopPropagation(); marcarVerificado(seccion.id, index); }}
                             className="inline-flex items-center justify-center py-1 px-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold shadow transition-all"
@@ -188,10 +200,10 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                             <UserX className="w-3 h-3 mr-1" /> No inscrito
                           </button>
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-3 px-4 text-center print:hidden">
                           {est.verificado ? (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white shadow-sm">
-                              Sí, verificado (Verde)
+                              Sí, verificado
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
@@ -205,10 +217,10 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                         <td className="py-3 px-4 text-gray-400 italic font-normal" colSpan={3}>
                           (Cupo disponible - Vacío)
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-3 px-4 text-center print:hidden">
                           <span className="text-xs text-gray-400">-</span>
                         </td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-3 px-4 text-center print:hidden">
                           <span className="text-xs text-gray-400">-</span>
                         </td>
                       </>
@@ -222,7 +234,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
       </div>
 
       {/* Botonera de Acciones (Página 6 y Página 7 del documento PDF) */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg space-y-6">
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg space-y-6 print:hidden">
         <h3 className="text-lg font-bold text-unet-blue border-b border-gray-100 pb-2">
           Acciones y Operaciones de la Sección
         </h3>
