@@ -33,7 +33,7 @@ function Admin() {
 
   const [seccionSeleccionadaId, setSeccionSeleccionadaId] = useState(null)
 
-  // Buscador para Inscriptos por Materias
+  // Buscador para Demanda de Estudiantes
   const [searchInscriptosMateria, setSearchInscriptosMateria] = useState('')
 
   // Buscador y filtros para Vista de Estado de Sesiones (Página 5)

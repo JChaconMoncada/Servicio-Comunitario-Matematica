@@ -6,6 +6,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   const { rechazarEstudiante } = useInscripcion()
   const [razonRechazo, setRazonRechazo] = React.useState('')
   const [reglaUC, setReglaUC] = React.useState('')
+  const [motivoRechazo, setMotivoRechazo] = React.useState('exceso_uc')
   const [procesando, setProcesando] = React.useState(false)
 
   if (!estudiante) return null
@@ -26,7 +27,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
     else if (reglaUC === '3_y_4') ucsProhibidas = [3, 4]
     else if (reglaUC === '2_3_y_4') ucsProhibidas = [2, 3, 4]
 
-    const result = await rechazarEstudiante(estudiante, ucsProhibidas, razonRechazo)
+    const result = await rechazarEstudiante(estudiante, ucsProhibidas, razonRechazo, motivoRechazo)
     setProcesando(false)
 
     if (result.success) {
@@ -96,10 +97,10 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                     badgeText = 'Con Cupo'
                   } else if (item.estado === 'rojo') {
                     badgeColor = 'bg-red-500 text-white font-bold'
-                    badgeText = 'Sin Cupo'
+                    badgeText = 'Rechazado (Bajo Índice)' // Actualizado para reflejar el rechazo por bajo índice
                   } else if (item.estado === 'anaranjado') {
                     badgeColor = 'bg-orange-500 text-white font-bold'
-                    badgeText = 'Rechazado (Límite UC)'
+                    badgeText = 'Rechazado (Exceso UC)'
                   }
 
                   return (
@@ -128,13 +129,25 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
         <div className="bg-orange-50 p-6 border-t border-orange-100 space-y-4">
           <h5 className="text-sm font-bold text-orange-800 uppercase tracking-wider flex items-center mb-2">
             <AlertTriangle className="w-4 h-4 mr-2" />
-            Rechazar Solicitudes por Límite de UC
+            Rechazar Solicitudes
           </h5>
           <p className="text-xs text-orange-700">
             Si el estudiante no cumple con las UC requeridas, puedes bloquear sus solicitudes para materias pesadas. Se le enviará un correo automáticamente.
           </p>
 
           <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Motivo del rechazo:</label>
+              <select 
+                value={motivoRechazo} 
+                onChange={(e) => setMotivoRechazo(e.target.value)}
+                className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="exceso_uc">Exceso de Unidades de Crédito (Anaranjado)</option>
+                <option value="bajo_indice">Bajo Índice (Rojo)</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Restricción a aplicar:</label>
               <select 

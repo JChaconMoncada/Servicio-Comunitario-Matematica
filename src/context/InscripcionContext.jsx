@@ -394,7 +394,7 @@ export const InscripcionProvider = ({ children }) => {
   }
 
   // Rechazar estudiante por límite de UC y notificarle
-  const rechazarEstudiante = async (solicitud, reglasUC, razon) => {
+  const rechazarEstudiante = async (solicitud, reglasUC, razon, motivo = 'exceso_uc') => {
     // reglasUC será un arreglo de los UCs prohibidos, ej: [3, 4] o [4]
     
     // Identificar qué materias solicitadas caen en la restricción
@@ -411,11 +411,12 @@ export const InscripcionProvider = ({ children }) => {
     }
 
     const idsARechazar = materiasARechazar.map(m => m.id)
+    const estadoRechazo = motivo === 'bajo_indice' ? 'rojo' : 'anaranjado'
 
     // 1. Actualizar en Supabase (solicitudes_materias)
     const { error } = await supabase
       .from('solicitudes_materias')
-      .update({ estado: 'anaranjado' }) // Estado anaranjado para rechazos de UC
+      .update({ estado: estadoRechazo }) // Estado anaranjado o rojo según el motivo
       .in('id', idsARechazar)
 
     if (error) {
@@ -429,7 +430,7 @@ export const InscripcionProvider = ({ children }) => {
       
       const materiasActualizadas = s.materiasSolicitadas.map(m => {
         if (idsARechazar.includes(m.id)) {
-          return { ...m, estado: 'anaranjado' }
+          return { ...m, estado: estadoRechazo }
         }
         return m
       })
