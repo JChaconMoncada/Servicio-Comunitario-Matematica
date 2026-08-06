@@ -8,87 +8,133 @@ function Pensum() {
       materias: [
         "Introducción a la Ingeniería en Informática",
         "Computación 1",
-        "Programación 1",
-        "Matemática I",
-        "Física I"
+        "Matemática 1",
+        "Matemática Discreta",
+        "Lenguaje y Comunicación",
+        "Efectividad Personal"
       ]
     },
     {
       semestre: "2do Semestre",
       materias: [
-        "Computación 2",
-        "Programación 2",
-        "Estructura de Datos",
-        "Matemática II",
-        "Física II"
+        "Química General 1",
+        "Programación 1",
+        "Laboratorio de Física 1",
+        "Física 1",
+        "Matemática 2",
+        "Inglés 1 (se desbloquea con 12 UC aprobadas)"
       ]
     },
     {
       semestre: "3er Semestre",
       materias: [
-        "Base de Datos 1",
-        "Organización del Computador",
-        "Fundamentos de Lógica Digital",
-        "Matemática III",
-        "Teoría General de Sistemas"
+        "Teoría General de Sistemas",
+        "Estructura de Datos",
+        "Laboratorio de Física 2",
+        "Física 2",
+        "Matemática 3",
+        "Inglés 2"
       ]
     },
     {
       semestre: "4to Semestre",
       materias: [
-        "Sistemas Operativos",
-        "Comunicaciones 1",
-        "Sistemas de Información 1",
-        "Multimedia",
-        "Investigación de Operaciones 1"
+        "Ciencias y Sociedad 1",
+        "Programación 2",
+        "Fundamentos de Lógica Digital",
+        "Matemática 4",
+        "Estadística 1"
       ]
     },
     {
       semestre: "5to Semestre",
       materias: [
-        "Base de Datos 2",
-        "Compiladores e Intérpretes",
-        "Comunicaciones 2",
-        "Sistemas de Información 2",
-        "Investigación de Operaciones 2"
+        "Necesidades, Valores y Proyecto de Vida",
+        "Base de Datos 1",
+        "Organización del Computador",
+        "Automatización",
+        "Análisis Numérico",
+        "Estadística 2",
+        "Proyecto Servicio Comunitario (se desbloquea con 78 UC aprobadas)",
+        "Seminario Servicio Comunitario (se desbloquea con 78 UC aprobadas)"
       ]
     },
     {
       semestre: "6to Semestre",
       materias: [
-        "Sistemas Distribuidos",
-        "Simulación de Sistemas",
-        "Ingeniería de Software",
-        "Computación Aplicada",
-        "Administración de Base de Datos"
+        "Multimedia",
+        "Sistemas de Información 1",
+        "Sistemas Operativos",
+        "Comunicaciones 1",
+        "Investigación de Operaciones 1",
+        "Servicio Comunitario",
+        "Economía"
       ]
     },
     {
       semestre: "7mo Semestre",
       materias: [
-        "Redes Neurales y Lógica Difusa",
-        "Aprendizaje Automático",
-        "Introducción a la Inteligencia Artificial",
-        "Desarrollo de Aplicaciones Web",
-        "Gerencia de Proyectos"
+        "Electiva 1 (se desbloquea con 90 UC aprobadas)",
+        "Base de Datos 2",
+        "Compiladores e Intérpretes",
+        "Comunicaciones 2",
+        "Investigación de Operaciones 2",
+        "Ingeniería Económica"
       ]
     },
     {
       semestre: "8vo Semestre",
       materias: [
+        "Ecología y Contaminación Ambiental (se desbloquea con 100 UC aprobadas)",
+        "Sistemas de Información 2",
+        "Sistemas Distribuidos",
+        "Electiva 2",
+        "Simulación de Sistemas",
+        "Finanzas para Ingenieros"
+      ]
+    },
+    {
+      semestre: "9no Semestre",
+      materias: [
+        "Metodología de la Investigación (se desbloquea con 110 UC aprobadas)",
+        "Ingeniería de Software",
+        "Seminario (se desbloquea con 126 UC aprobadas)",
+        "Electiva 3",
+        "Electiva 4",
+        "Legislación, Valores y Proyecto de País"
+      ]
+    },
+    {
+      semestre: "10mo Semestre",
+      materias: [
+        "TAP Tesis (80% de todas las UC aprobadas)",
+        "TAP Pasantías (100% de todas las UC aprobadas)"
+      ]
+    },
+    {
+      semestre: "Materias Electivas Disponibles",
+      materias: [
+        "Redes Neurales y Lógica Difusa",
+        "Aprendizaje Automático",
+        "Formación de Emprendedores",
+        "Introducción a la Inteligencia Artificial",
         "Análisis y Procesamiento de Datos",
         "Introducción a las Telecomunicaciones",
         "Interfaces Digitales Biomédicas",
         "Gestión Tecnológica",
-        "Formación de Emprendedores"
+        "Organización",
+        "Administración de Base de Datos",
+        "Desarrollo de Aplicaciones Web",
+        "Gerencia de Proyectos",
+        "Administración de Redes",
+        "Computación Aplicada a la Psicología"
       ]
     },
     {
-      semestre: "Materias Electivas",
+      semestre: "Materias que se tramitan en Informática (no son de la carrera)",
       materias: [
-        "Computación Aplicada a la Psicología",
-        "Organización",
-        "Administración de Redes"
+        "Computación 2",
+        "Computación Aplicada"
       ]
     }
   ]
@@ -138,7 +184,7 @@ function Pensum() {
               </li>
               <li className="flex items-start">
                 <span className="text-unet-blue mr-2">•</span>
-                <span>Algunas materias como Computación 2 son exclusivas de Informática.</span>
+                <span>Las materias electivas pueden ser cursadas en diferentes semestres según disponibilidad.</span>
               </li>
               <li className="flex items-start">
                 <span className="text-unet-blue mr-2">•</span>
