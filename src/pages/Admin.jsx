@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { 
   Settings, BarChart3, Users, BookOpen, ToggleLeft, ToggleRight, 
   AlertCircle, CheckCircle, Lock, LogOut, Search, PlusCircle, 
-  Calendar, ChevronRight, Eye, Grid, FileSpreadsheet
+  Calendar, ChevronRight, Eye, Grid, FileSpreadsheet, X
 } from 'lucide-react'
 import { informaticaSubjects } from '../data/subjects'
 import { useInscripcion } from '../context/InscripcionContext'
@@ -61,7 +61,8 @@ function Admin() {
     toggleMateria,
     solicitudes,
     secciones,
-    crearSeccion
+    crearSeccion,
+    eliminarSeccion
   } = useInscripcion()
 
   const handleLogin = (e) => {
@@ -90,23 +91,31 @@ function Admin() {
   const materiasDisponiblesCount = Object.values(materiasHabilitadas).filter(Boolean).length
 
   // Manejo de creación de sección presencial
-  const handleCrearPresencial = (e) => {
+  const handleCrearPresencial = async (e) => {
     e.preventDefault()
-    crearSeccion({
+    const res = await crearSeccion({
       ...formSeccionPresencial,
       modalidad: 'Presencial'
     })
-    alert(`Sección Presencial ${formSeccionPresencial.seccion} de ${formSeccionPresencial.materia} creada con éxito (30 cupos).`)
+    if (res.success) {
+      alert(`Sección Presencial ${formSeccionPresencial.seccion} de ${formSeccionPresencial.materia} creada con éxito (30 cupos).`)
+    } else {
+      alert(res.error)
+    }
   }
 
   // Manejo de creación de sección virtual
-  const handleCrearVirtual = (e) => {
+  const handleCrearVirtual = async (e) => {
     e.preventDefault()
-    crearSeccion({
+    const res = await crearSeccion({
       ...formSeccionVirtual,
       modalidad: 'Virtual'
     })
-    alert(`Sección Virtual ${formSeccionVirtual.seccion} de ${formSeccionVirtual.materia} creada con éxito (20 cupos).`)
+    if (res.success) {
+      alert(`Sección Virtual ${formSeccionVirtual.seccion} de ${formSeccionVirtual.materia} creada con éxito (20 cupos).`)
+    } else {
+      alert(res.error)
+    }
   }
 
   if (!isAuthenticated) {
@@ -773,73 +782,108 @@ function Admin() {
               </div>
 
               {/* Grilla de Tarjetas de Secciones (Página 5) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {seccionesFiltradas.map((sec) => (
-                  <div
-                    key={sec.id}
-                    onClick={() => {
-                      setSeccionSeleccionadaId(sec.id)
-                      setActiveTab('detalle_seccion')
-                    }}
-                    className={`bg-white rounded-2xl border-2 shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition-all group ${
-                      sec.modalidad === 'Virtual' ? 'border-emerald-400' : 'border-blue-400'
-                    }`}
-                  >
-                    <div className={`p-4 text-white font-bold flex justify-between items-start ${
-                      sec.modalidad === 'Virtual' ? 'bg-emerald-600' : 'bg-blue-600'
-                    }`}>
-                      <div>
-                        <h4 className="text-base leading-tight font-extrabold">{sec.materia}</h4>
-                        <div className="text-xs text-white/90 font-medium mt-1">
-                          Seccion:{sec.seccion} | {sec.aula} | Prof: {sec.profesor}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform" />
+              {(() => {
+                const elementosPorPagina = 6
+                const totalPaginas = Math.ceil(seccionesFiltradas.length / elementosPorPagina) || 1
+                const inicio = (paginaActual - 1) * elementosPorPagina
+                const seccionesPaginadas = seccionesFiltradas.slice(inicio, inicio + elementosPorPagina)
+
+                return (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {seccionesPaginadas.map((sec) => {
+                        const capacidad = sec.capacidadMax || sec.capacidad_max || 0
+                        return (
+                          <div
+                            key={sec.id}
+                            onClick={() => {
+                              setSeccionSeleccionadaId(sec.id)
+                              setActiveTab('detalle_seccion')
+                            }}
+                            className={`bg-white rounded-2xl border-2 shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition-all group relative ${
+                              sec.modalidad === 'Virtual' ? 'border-emerald-400' : 'border-blue-400'
+                            }`}
+                          >
+                            {/* Botón X de eliminar sección */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (window.confirm(`¿Estás seguro de eliminar la sección ${sec.seccion} de ${sec.materia}?`)) {
+                                  eliminarSeccion(sec.id)
+                                }
+                              }}
+                              className={`absolute -top-1 -left-1 z-10 w-7 h-7 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 ${
+                                sec.modalidad === 'Virtual' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'
+                              }`}
+                              title="Eliminar Sección"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+
+                            <div className={`p-4 pl-7 text-white font-bold flex justify-between items-start ${
+                              sec.modalidad === 'Virtual' ? 'bg-emerald-600' : 'bg-blue-600'
+                            }`}>
+                              <div>
+                                <h4 className="text-base leading-tight font-extrabold">{sec.materia}</h4>
+                                <div className="text-xs text-white/90 font-medium mt-1">
+                                  Seccion:{sec.seccion} | {sec.aula} | Prof: {sec.profesor}
+                                </div>
+                              </div>
+                              <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform flex-shrink-0" />
+                            </div>
+
+                            <div className="p-3">
+                              <table className="w-full text-left text-xs">
+                                <thead className="text-gray-500 font-bold border-b border-gray-100">
+                                  <tr>
+                                    <th className="py-1 px-2">Nro</th>
+                                    <th className="py-1 px-2">Nombre</th>
+                                    <th className="py-1 px-2">Cédula</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {sec.estudiantes && sec.estudiantes.slice(0, 5).map((e, ei) => (
+                                    <tr key={ei} className="hover:bg-gray-50">
+                                      <td className="py-1.5 px-2 font-bold text-gray-400">{e.nro}</td>
+                                      <td className="py-1.5 px-2 font-medium text-gray-800 truncate max-w-[100px]">{e.nombre}</td>
+                                      <td className="py-1.5 px-2 text-gray-600">{e.cedula}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              <div className="mt-2 text-center text-xs font-bold text-unet-blue pt-2 border-t border-gray-100">
+                                Ver sección completa ({(sec.estudiantes && sec.estudiantes.length) || 0} / {capacidad})
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
 
-                    <div className="p-3">
-                      <table className="w-full text-left text-xs">
-                        <thead className="text-gray-500 font-bold border-b border-gray-100">
-                          <tr>
-                            <th className="py-1 px-2">Nro</th>
-                            <th className="py-1 px-2">Nombre</th>
-                            <th className="py-1 px-2">Cédula</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {sec.estudiantes.slice(0, 5).map((e, ei) => (
-                            <tr key={ei} className="hover:bg-gray-50">
-                              <td className="py-1.5 px-2 font-bold text-gray-400">{e.nro}</td>
-                              <td className="py-1.5 px-2 font-medium text-gray-800 truncate max-w-[100px]">{e.nombre}</td>
-                              <td className="py-1.5 px-2 text-gray-600">{e.cedula}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      <div className="mt-2 text-center text-xs font-bold text-unet-blue pt-2 border-t border-gray-100">
-                        Ver sección completa ({sec.estudiantes.length} / {sec.capacidadMax})
+                    {/* Paginador funcional */}
+                    {totalPaginas > 1 && (
+                      <div className="flex justify-center space-x-2 pt-4">
+                        {Array.from({ length: totalPaginas }).map((_, idx) => {
+                          const pag = idx + 1
+                          return (
+                            <button
+                              key={pag}
+                              onClick={() => setPaginaActual(pag)}
+                              className={`w-10 h-10 rounded-xl font-bold text-sm border ${
+                                paginaActual === pag
+                                  ? 'bg-unet-blue text-white border-unet-blue shadow'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                              }`}
+                            >
+                              {pag}
+                            </button>
+                          )
+                        })}
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Paginador (Página 5) */}
-              <div className="flex justify-center space-x-2 pt-4">
-                {[1, 2, 3, 4, 5].map((pag) => (
-                  <button
-                    key={pag}
-                    onClick={() => setPaginaActual(pag)}
-                    className={`w-10 h-10 rounded-xl font-bold text-sm border ${
-                      paginaActual === pag
-                        ? 'bg-unet-blue text-white border-unet-blue shadow'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-                    }`}
-                  >
-                    {pag}
-                  </button>
-                ))}
-              </div>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
 

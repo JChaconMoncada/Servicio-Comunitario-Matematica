@@ -185,8 +185,16 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, data: nuevaSolicitudCompleta }
   }
 
-  // Crear Sección
+  // Crear Sección (con validación de duplicados)
   const crearSeccion = async ({ materia, modalidad, seccion, aula, profesor }) => {
+    // Validar que no exista una sección con la misma materia y número de sección
+    const duplicada = secciones.find(s => 
+      s.materia === materia && s.seccion === seccion
+    )
+    if (duplicada) {
+      return { success: false, error: `Ya existe una sección ${seccion} para ${materia}. No se puede crear duplicada.` }
+    }
+
     const capacidadMax = modalidad === 'Virtual' ? 20 : 30
     
     const { data, error } = await supabase
@@ -203,25 +211,111 @@ export const InscripcionProvider = ({ children }) => {
       .single()
 
     if (!error && data) {
-      const nuevaSeccion = { ...data, estudiantes: [] }
+      const nuevaSeccion = { ...data, capacidadMax: data.capacidad_max, estudiantes: [] }
       setSecciones(prev => [...prev, nuevaSeccion])
-      return nuevaSeccion
+      return { success: true, data: nuevaSeccion }
     }
-    return null
+    return { success: false, error: error?.message || 'Error al crear la sección' }
   }
 
-  // Cargar estudiantes a una sección
+  // Eliminar una sección
+  const eliminarSeccion = async (seccionId) => {
+    const { error } = await supabase
+      .from('secciones')
+      .delete()
+      .eq('id', seccionId)
+
+    if (error) {
+      alert('Error al eliminar la sección: ' + error.message)
+      return
+    }
+
+    setSecciones(prev => prev.filter(s => s.id !== seccionId))
+  }
+
+  // Cargar estudiantes a una sección desde las solicitudes
   const cargarEstudiantesASeccion = async (seccionId, cantidadMax) => {
-    // Implementación simplificada para añadir localmente por ahora
-    // Para producción, se debe hacer con Supabase Insert
-    alert('Esta función masiva está en desarrollo para Supabase.')
+    const sec = secciones.find(s => s.id === seccionId)
+    if (!sec) return
+
+    // Obtener estudiantes que ya están en esta sección
+    const cedulasYaEnSeccion = new Set(sec.estudiantes.map(e => e.cedula))
+
+    // Obtener estudiantes que ya están en CUALQUIER sección de la misma materia
+    const cedulasEnOtrasSecciones = new Set()
+    secciones
+      .filter(s => s.materia === sec.materia)
+      .forEach(s => {
+        s.estudiantes.forEach(e => cedulasEnOtrasSecciones.add(e.cedula))
+      })
+
+    // Filtrar solicitudes: estudiantes que pidieron esta materia y no están asignados
+    const candidatos = solicitudes.filter(sol => {
+      if (cedulasEnOtrasSecciones.has(sol.cedula)) return false
+      return sol.materiasSolicitadas && sol.materiasSolicitadas.some(m => m.materia === sec.materia)
+    })
+
+    if (candidatos.length === 0) {
+      alert(`No hay estudiantes pendientes por asignar para ${sec.materia}. Todos ya fueron asignados o no hay solicitudes.`)
+      return
+    }
+
+    // Cuántos cupos hay disponibles
+    const cuposDisponibles = cantidadMax - sec.estudiantes.length
+    if (cuposDisponibles <= 0) {
+      alert('Esta sección ya está llena. No hay cupos disponibles.')
+      return
+    }
+
+    // Tomar solo los que caben
+    const aInsertar = candidatos.slice(0, cuposDisponibles)
+    const nroInicial = sec.estudiantes.length
+
+    // Preparar datos para insertar en Supabase
+    const datosInsert = aInsertar.map((est, idx) => ({
+      seccion_id: seccionId,
+      nro: nroInicial + idx + 1,
+      nombre: est.nombre,
+      cedula: est.cedula,
+      correo: est.correo,
+      verificado: false
+    }))
+
+    const { data, error } = await supabase
+      .from('secciones_estudiantes')
+      .insert(datosInsert)
+      .select()
+
+    if (error) {
+      console.error('Error cargando estudiantes:', error)
+      alert('Error al cargar estudiantes: ' + error.message)
+      return
+    }
+
+    // Actualizar estado local
+    const nuevosEstudiantes = data.map(e => ({
+      id: e.id,
+      nro: e.nro,
+      nombre: e.nombre,
+      cedula: e.cedula,
+      correo: e.correo,
+      verificado: e.verificado
+    }))
+
+    setSecciones(prev => prev.map(s => {
+      if (s.id !== seccionId) return s
+      return { ...s, estudiantes: [...s.estudiantes, ...nuevosEstudiantes] }
+    }))
+
+    alert(`Se cargaron ${nuevosEstudiantes.length} estudiante(s) a la sección ${sec.seccion} de ${sec.materia}.`)
   }
 
-  // Autocompletar celdas vacías de una sección
-  const autocompletarSeccion = (seccionId) => {
+  // Autocompletar celdas vacías de una sección (llena los cupos restantes)
+  const autocompletarSeccion = async (seccionId) => {
     const secTarget = secciones.find(s => s.id === seccionId)
     if (!secTarget) return
-    cargarEstudiantesASeccion(seccionId, secTarget.capacidad_max)
+    const capacidad = secTarget.capacidadMax || secTarget.capacidad_max
+    await cargarEstudiantesASeccion(seccionId, capacidad)
   }
 
   // Marcar fila de estudiante como verificado (Verde en la lista)
@@ -309,6 +403,7 @@ export const InscripcionProvider = ({ children }) => {
         secciones,
         agregarSolicitud,
         crearSeccion,
+        eliminarSeccion,
         cargarEstudiantesASeccion,
         autocompletarSeccion,
         marcarVerificado,
