@@ -5,7 +5,6 @@ import Xarrow, { Xwrapper } from 'react-xarrows'
 import { pensumMaterias, electivasDisponibles, materiasNoInformatica, prelacionesPorUC, coloresSemestre, semestresLabels } from '../data/pensum'
 
 function Pensum() {
-  const [hoveredMateria, setHoveredMateria] = useState(null)
   const [selectedMateria, setSelectedMateria] = useState(null)
 
   // Agrupar materias por semestre
@@ -28,7 +27,7 @@ function Pensum() {
 
   // Renderizar tarjeta de materia
   const MateriaCard = ({ materia }) => {
-    const isHovered = hoveredMateria === materia.id
+    const [isHovered, setIsHovered] = useState(false)
     const isSelected = selectedMateria?.id === materia.id
     const color = getColor(materia.semestre)
     const prelNombres = getPrelacionesNombres(materia)
@@ -39,8 +38,8 @@ function Pensum() {
       <div
         id={`materia-${materia.id}`}
         className="relative group cursor-pointer z-10"
-        onMouseEnter={() => setHoveredMateria(materia.id)}
-        onMouseLeave={() => setHoveredMateria(null)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         onClick={() => setSelectedMateria(materia)}
       >
         <div
