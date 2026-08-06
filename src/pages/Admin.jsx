@@ -678,13 +678,19 @@ function Admin() {
                                   <td className="py-3 px-4 text-gray-700">{sol.cedula}</td>
                                   <td className="py-3 px-4 text-unet-blue underline">{sol.correo}</td>
                                   
-                                  {/* Columna Estado (Página 4: Verde=Asignado sin problema, Rojo=Choque/Sin cupo, Gris=Pendiente) */}
+                                  {/* Columna Estado (Verde=Asignado, Rojo=Bajo Índice, Anaranjado=Exceso UC, Morado=Choque, Gris=Pendiente) */}
                                   <td className="py-3 px-4 text-center">
                                     {estado === 'verde' && (
                                       <span className="w-6 h-6 rounded-full bg-green-500 inline-block shadow-sm" title="Asignado a sección disponible"></span>
                                     )}
                                     {estado === 'rojo' && (
-                                      <span className="w-6 h-6 rounded-full bg-red-500 inline-block shadow-sm" title="Choque de horario o sin cupo"></span>
+                                      <span className="w-6 h-6 rounded-full bg-red-500 inline-block shadow-sm" title="Rechazado (Bajo Índice)"></span>
+                                    )}
+                                    {estado === 'anaranjado' && (
+                                      <span className="w-6 h-6 rounded-full bg-orange-500 inline-block shadow-sm" title="Rechazado (Exceso de UC)"></span>
+                                    )}
+                                    {estado === 'morado' && (
+                                      <span className="w-6 h-6 rounded-full bg-purple-600 inline-block shadow-sm" title="Rechazado (Choque de Horario)"></span>
                                     )}
                                     {estado === 'gris' && (
                                       <span className="w-6 h-6 rounded-full bg-gray-300 inline-block shadow-sm" title="Sin asignar aún"></span>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users, CheckSquare, Square } from 'lucide-react'
+import { Plus, Minus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users, CheckSquare, Square } from 'lucide-react'
 import emailjs from '@emailjs/browser'
 import { useInscripcion } from '../context/InscripcionContext'
 import { pensumMaterias } from '../data/pensum'
@@ -46,6 +46,24 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
 
   const handleAgregarFila = () => {
     agregarFilaCupo(seccion.id)
+  }
+
+  const handleQuitarFila = async () => {
+    const capacidadActual = seccion.capacidadMax || seccion.capacidad_max
+    if (capacidadActual <= seccion.estudiantes.length) {
+      alert('No puedes quitar cupos. Hay estudiantes ocupando todos los cupos actuales.')
+      return
+    }
+    if (capacidadActual <= 1) {
+      alert('La capacidad mínima es 1.')
+      return
+    }
+    // Importar supabase directamente para la actualización
+    const { supabase } = await import('../lib/supabase')
+    const nuevaCapacidad = capacidadActual - 1
+    await supabase.from('secciones').update({ capacidad_max: nuevaCapacidad }).eq('id', seccion.id)
+    // Actualizar localmente via agregarFilaCupo NO sirve, usar fuerza bruta con reload
+    window.location.reload()
   }
 
   // --- Selección Múltiple ---
@@ -179,14 +197,24 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
             (Haz clic en una fila para seleccionarla)
           </span>
         </div>
-        <button
-          onClick={handleAgregarFila}
-          title="Agregar fila para aumentar cupo"
-          className="flex items-center space-x-1.5 px-3 py-1.5 bg-gray-800 hover:bg-black text-white text-xs font-bold rounded-lg transition-all shadow"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Agregar Cupo (+)</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleQuitarFila}
+            title="Quitar un cupo"
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-all shadow"
+          >
+            <Minus className="w-4 h-4" />
+            <span>Quitar Cupo (-)</span>
+          </button>
+          <button
+            onClick={handleAgregarFila}
+            title="Agregar fila para aumentar cupo"
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-gray-800 hover:bg-black text-white text-xs font-bold rounded-lg transition-all shadow"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Agregar Cupo (+)</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabla de la Sección (Página 6) */}
@@ -254,75 +282,87 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                             {(() => {
                               const sol = solicitudes.find(s => s.cedula === est.cedula)
                               if (!sol || !sol.materiasSolicitadas) return null
-                              const badges = []
-                              sol.materiasSolicitadas.forEach(m => {
-                                if (m.estado === 'anaranjado' && !badges.find(b => b.type === 'uc')) {
-                                  badges.push({ type: 'uc', label: 'UC', color: 'bg-orange-500 hover:bg-orange-600' })
-                                }
-                                if (m.estado === 'morado' && !badges.find(b => b.type === 'choque')) {
-                                  badges.push({ type: 'choque', label: 'Choque', color: 'bg-purple-600 hover:bg-purple-700' })
-                                }
-                                if (m.estado === 'rojo' && !badges.find(b => b.type === 'indice')) {
-                                  badges.push({ type: 'indice', label: 'Índice', color: 'bg-red-500 hover:bg-red-600' })
-                                }
-                              })
-                              // Botones para aplicar rechazo rápido si aún no tiene badges
+                              
+                              // Verificar qué rechazos ya tiene este estudiante
+                              const tieneUC = sol.materiasSolicitadas.some(m => m.estado === 'anaranjado')
+                              const tieneChoque = sol.materiasSolicitadas.some(m => m.estado === 'morado')
+                              const tieneIndice = sol.materiasSolicitadas.some(m => m.estado === 'rojo')
+                              
+                              // Para la materia de esta sección específica
                               const materiaEnSeccion = sol.materiasSolicitadas.find(m => m.materia === seccion.materia)
-                              const yaRechazada = materiaEnSeccion && ['anaranjado', 'morado', 'rojo'].includes(materiaEnSeccion.estado)
+                              const yaRechazadaEstaMateria = materiaEnSeccion && ['anaranjado', 'morado', 'rojo'].includes(materiaEnSeccion.estado)
                               
                               return (
                                 <>
-                                  {badges.map((b, i) => (
-                                    <span key={i} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm cursor-default ${b.color}`}>
-                                      {b.label}
+                                  {/* Badges de estado (solo mostrar si ya fue rechazado) */}
+                                  {tieneUC && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm cursor-default bg-orange-500">
+                                      UC
                                     </span>
-                                  ))}
-                                  {!yaRechazada && (
+                                  )}
+                                  {tieneChoque && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm cursor-default bg-purple-600">
+                                      Choque
+                                    </span>
+                                  )}
+                                  {tieneIndice && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm cursor-default bg-red-500">
+                                      Índice
+                                    </span>
+                                  )}
+                                  {/* Botones de acción rápida (solo si esta materia aún no fue rechazada) */}
+                                  {!yaRechazadaEstaMateria && (
                                     <>
-                                      <button
-                                        onClick={async (e) => {
-                                          e.stopPropagation()
-                                          const infoMateria = pensumMaterias.find(p => p.nombre === seccion.materia)
-                                          const uc = infoMateria ? infoMateria.uc : 0
-                                          if (window.confirm(`¿Rechazar a ${est.nombre} por Exceso de UC para materias de ${uc} UC?`)) {
-                                            await rechazarEstudiante(sol, [uc], `Rechazado por exceso de UC para materias de ${uc} UC en la materia ${seccion.materia}.`, 'exceso_uc')
-                                          }
-                                        }}
-                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-orange-400 hover:bg-orange-600 transition-all cursor-pointer"
-                                        title="Rechazar por Exceso de UC"
-                                      >
-                                        UC
-                                      </button>
-                                      <button
-                                        onClick={async (e) => {
-                                          e.stopPropagation()
-                                          const allUCs = [...new Set(sol.materiasSolicitadas.map(m => {
-                                            const info = pensumMaterias.find(p => p.nombre === m.materia)
-                                            return info ? info.uc : -1
-                                          }).filter(u => u >= 0))]
-                                          if (window.confirm(`¿Rechazar a ${est.nombre} por Choque de Horario en todas sus materias solicitadas?`)) {
-                                            await rechazarEstudiante(sol, allUCs, `Rechazado por choque de horario.`, 'choque_horario')
-                                          }
-                                        }}
-                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-purple-400 hover:bg-purple-600 transition-all cursor-pointer"
-                                        title="Rechazar por Choque de Horario"
-                                      >
-                                        Choque
-                                      </button>
-                                      <button
-                                        onClick={async (e) => {
-                                          e.stopPropagation()
-                                          const infoMateria = pensumMaterias.find(p => p.nombre === seccion.materia)
-                                          const uc = infoMateria ? infoMateria.uc : 0
-                                          if (window.confirm(`¿Rechazar a ${est.nombre} por Bajo Índice para materias de ${uc} UC?`)) {
-                                            await rechazarEstudiante(sol, [uc], `Rechazado por bajo índice académico para materias de ${uc} UC en la materia ${seccion.materia}.`, 'bajo_indice')
-                                          }
-                                        }}
-                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-red-400 hover:bg-red-600 transition-all cursor-pointer"
-                                        title="Rechazar por Bajo Índice"
-                                      >
-                                        Índice
-                                      </button>
+                                      {!tieneUC && (
+                                        <button
+                                          onClick={async (e) => {
+                                            e.stopPropagation()
+                                            const infoMateria = pensumMaterias.find(p => p.nombre === seccion.materia)
+                                            const uc = infoMateria ? infoMateria.uc : 0
+                                            if (window.confirm(`¿Rechazar a ${est.nombre} por Exceso de UC para materias de ${uc} UC?`)) {
+                                              await rechazarEstudiante(sol, [uc], `Rechazado por exceso de UC para materias de ${uc} UC en la materia ${seccion.materia}.`, 'exceso_uc')
+                                            }
+                                          }}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-orange-400 hover:bg-orange-600 transition-all cursor-pointer"
+                                          title="Rechazar por Exceso de UC"
+                                        >
+                                          UC
+                                        </button>
+                                      )}
+                                      {!tieneChoque && (
+                                        <button
+                                          onClick={async (e) => {
+                                            e.stopPropagation()
+                                            const allUCs = [...new Set(sol.materiasSolicitadas.map(m => {
+                                              const info = pensumMaterias.find(p => p.nombre === m.materia)
+                                              return info ? info.uc : -1
+                                            }).filter(u => u >= 0))]
+                                            if (window.confirm(`¿Rechazar a ${est.nombre} por Choque de Horario en todas sus materias solicitadas?`)) {
+                                              await rechazarEstudiante(sol, allUCs, `Rechazado por choque de horario.`, 'choque_horario')
+                                            }
+                                          }}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-purple-400 hover:bg-purple-600 transition-all cursor-pointer"
+                                          title="Rechazar por Choque de Horario"
+                                        >
+                                          Choque
+                                        </button>
+                                      )}
+                                      {!tieneIndice && (
+                                        <button
+                                          onClick={async (e) => {
+                                            e.stopPropagation()
+                                            const infoMateria = pensumMaterias.find(p => p.nombre === seccion.materia)
+                                            const uc = infoMateria ? infoMateria.uc : 0
+                                            if (window.confirm(`¿Rechazar a ${est.nombre} por Bajo Índice para materias de ${uc} UC?`)) {
+                                              await rechazarEstudiante(sol, [uc], `Rechazado por bajo índice académico para materias de ${uc} UC en la materia ${seccion.materia}.`, 'bajo_indice')
+                                            }
+                                          }}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm bg-red-400 hover:bg-red-600 transition-all cursor-pointer"
+                                          title="Rechazar por Bajo Índice"
+                                        >
+                                          Índice
+                                        </button>
+                                      )}
                                     </>
                                   )}
                                 </>
