@@ -71,9 +71,11 @@ function Pensum() {
           </div>
         </div>
 
-        {/* Tooltip al hacer hover */}
+        {/* Tooltip al hacer hover (smart position for top row) */}
         {isHovered && (
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 text-white rounded-xl p-3 shadow-2xl text-xs pointer-events-none">
+          <div className={`absolute z-50 left-1/2 -translate-x-1/2 w-56 bg-gray-900 text-white rounded-xl p-3 shadow-2xl text-xs pointer-events-none ${
+            materia.fila <= 2 ? 'top-full mt-2' : 'bottom-full mb-2'
+          }`}>
             <p className="font-bold text-sm mb-1">{materia.nombre}</p>
             <div className="space-y-1.5 text-gray-300">
               <p><span className="text-white font-semibold">Semestre:</span> {materia.semestre}</p>
@@ -91,6 +93,11 @@ function Pensum() {
                   </ul>
                 </div>
               )}
+              {materia.corequisito && (
+                <p className="text-cyan-300 text-[11px] font-semibold">
+                  * Debe cursarse simultáneamente con Física {materia.corequisito === 'fis1' ? '1' : '2'}
+                </p>
+              )}
               {tieneReqUC && (
                 <p className="flex items-center gap-1 text-amber-300">
                   <Lock className="w-3 h-3" />
@@ -98,7 +105,9 @@ function Pensum() {
                 </p>
               )}
             </div>
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45" />
+            <div className={`absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45 ${
+              materia.fila <= 2 ? '-top-1.5' : '-bottom-1.5'
+            }`} />
           </div>
         )}
       </div>

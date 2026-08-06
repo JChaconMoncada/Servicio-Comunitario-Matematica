@@ -10,6 +10,15 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   const [motivoRechazo, setMotivoRechazo] = React.useState('exceso_uc')
   const [procesando, setProcesando] = React.useState(false)
 
+  // Bloquear el scroll de la página de fondo mientras el modal esté abierto
+  React.useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = originalStyle
+    }
+  }, [])
+
   if (!estudiante) return null
 
   const handleRechazar = async () => {
@@ -50,11 +59,11 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 transform transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3 sm:p-4 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 transform transition-all my-auto">
         
         {/* Header Modal */}
-        <div className="bg-unet-blue px-6 py-4 flex justify-between items-center text-white">
+        <div className="bg-unet-blue px-6 py-4 flex justify-between items-center text-white flex-shrink-0">
           <div className="flex items-center space-x-2">
             <UserCheck className="w-6 h-6" />
             <h3 className="text-xl font-bold">Detalle de Estudiante</h3>
@@ -67,8 +76,10 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
           </button>
         </div>
 
-        {/* Body Modal */}
-        <div className="p-6 space-y-6">
+        {/* Scrollable Container with min-h-0 for CSS flexbox */}
+        <div className="overflow-y-auto flex-1 min-h-0">
+          {/* Body Modal */}
+          <div className="p-6 space-y-6">
           {/* Avatar and Main Info Card */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-4 bg-blue-50/60 p-4 rounded-xl border border-blue-100">
             <div className="w-16 h-16 flex-shrink-0 rounded-full bg-unet-blue text-white flex items-center justify-center text-2xl font-bold shadow-md">
@@ -201,7 +212,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
         </div>
 
         {/* Footer Modal */}
-        <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-100">
+        <div className="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-100 flex-shrink-0">
           <button
             onClick={onClose}
             className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg text-sm transition-colors"

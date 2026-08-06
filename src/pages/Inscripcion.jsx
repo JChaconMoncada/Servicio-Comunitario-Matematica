@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { User, Mail, FileText, CheckCircle, AlertCircle, BookOpen, Layers } from 'lucide-react'
 import { useInscripcion } from '../context/InscripcionContext'
+import { pensumMaterias } from '../data/pensum'
 
 function Inscripcion() {
   const [formData, setFormData] = useState({
@@ -22,6 +23,41 @@ function Inscripcion() {
 
   const validateEmail = (email) => {
     return email.endsWith('@unet.edu.ve')
+  }
+
+  // Obtener todas las prelaciones directas e indirectas de una materia
+  const getAllPrelacionesIds = (materiaNombre) => {
+    const materiaObj = pensumMaterias.find(p => p.nombre === materiaNombre)
+    if (!materiaObj || !materiaObj.prelaciones) return []
+    let ids = [...materiaObj.prelaciones]
+    materiaObj.prelaciones.forEach(preId => {
+      const preObj = pensumMaterias.find(p => p.id === preId)
+      if (preObj) {
+        ids = [...ids, ...getAllPrelacionesIds(preObj.nombre)]
+      }
+    })
+    return [...new Set(ids)]
+  }
+
+  // Validar si entre las materias seleccionadas hay alguna que prela a otra
+  const findPrerequisiteConflict = (seleccionadasNombres) => {
+    const validas = seleccionadasNombres.filter(m => m && m.trim() !== '')
+    for (let materiaNombre of validas) {
+      const preIds = getAllPrelacionesIds(materiaNombre)
+      const preNombres = preIds.map(id => {
+        const obj = pensumMaterias.find(p => p.id === id)
+        return obj ? obj.nombre : id
+      })
+      for (let otraMateria of validas) {
+        if (otraMateria !== materiaNombre && preNombres.includes(otraMateria)) {
+          return {
+            materiaInferior: otraMateria,
+            materiaSuperior: materiaNombre
+          }
+        }
+      }
+    }
+    return null
   }
 
   const handleCantidadChange = (e) => {
@@ -78,6 +114,11 @@ function Inscripcion() {
       newErrors.materias = 'Debe seleccionar al menos una materia'
     } else if (new Set(validas).size !== validas.length) {
       newErrors.materias = 'No debe seleccionar materias duplicadas'
+    } else {
+      const conflicto = findPrerequisiteConflict(validas)
+      if (conflicto) {
+        newErrors.materias = `No puedes solicitar "${conflicto.materiaSuperior}" y "${conflicto.materiaInferior}" al mismo tiempo, ya que "${conflicto.materiaInferior}" es prelación de "${conflicto.materiaSuperior}". Solo debes solicitar "${conflicto.materiaInferior}".`
+      }
     }
     
     setErrors(newErrors)
