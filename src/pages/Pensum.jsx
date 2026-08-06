@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Lock, Unlock, BookOpen, GraduationCap, Info, Sparkles, X } from 'lucide-react'
+import Xarrow, { Xwrapper } from 'react-xarrows'
 import { pensumMaterias, electivasDisponibles, materiasNoInformatica, prelacionesPorUC, coloresSemestre, semestresLabels } from '../data/pensum'
 
 function Pensum() {
@@ -36,7 +37,8 @@ function Pensum() {
 
     return (
       <div
-        className="relative group cursor-pointer"
+        id={`materia-${materia.id}`}
+        className="relative group cursor-pointer z-10"
         onMouseEnter={() => setHoveredMateria(materia.id)}
         onMouseLeave={() => setHoveredMateria(null)}
         onClick={() => setSelectedMateria(materia)}
@@ -134,8 +136,9 @@ function Pensum() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden mb-8">
             
             {/* Encabezado de semestres */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto relative">
               <div className="min-w-[1200px]">
+                <Xwrapper>
                 <div className="grid grid-cols-10 border-b border-gray-200">
                   {semestresLabels.map((label, idx) => (
                     <div
@@ -156,7 +159,7 @@ function Pensum() {
                     return (
                       <div
                         key={semestre}
-                        className="border-r border-gray-100 p-2 space-y-2 min-h-[400px]"
+                        className="border-r border-gray-100 p-2 space-y-4 min-h-[400px] flex flex-col justify-start"
                         style={{ borderLeft: semestre === 1 ? 'none' : undefined }}
                       >
                         {materias.map((mat) => (
@@ -166,6 +169,32 @@ function Pensum() {
                     )
                   })}
                 </div>
+
+                {/* Flechas de Prelaciones */}
+                {pensumMaterias.map((materia) => {
+                  if (!materia.prelaciones || materia.prelaciones.length === 0) return null;
+                  return materia.prelaciones.map((preId) => {
+                    // Only draw arrow if both the source and target elements exist in the DOM
+                    // Since all subjects are rendered, we can safely draw them
+                    return (
+                      <Xarrow
+                        key={`${preId}-${materia.id}`}
+                        start={`materia-${preId}`}
+                        end={`materia-${materia.id}`}
+                        color="#94a3b8" // slate-400
+                        strokeWidth={1.5}
+                        path="grid"
+                        showHead={true}
+                        headSize={4}
+                        startAnchor="right"
+                        endAnchor="left"
+                        curveness={0.8}
+                        zIndex={0}
+                      />
+                    )
+                  })
+                })}
+                </Xwrapper>
               </div>
             </div>
           </div>

@@ -65,6 +65,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
         {
           destinatario: est.correo,
           mensaje: mensaje,
+          message: mensaje, // Para soportar la plantilla por defecto si está en inglés
         },
         'p3KE-_nNVZb3wCTBE'    // Public Key
       )
