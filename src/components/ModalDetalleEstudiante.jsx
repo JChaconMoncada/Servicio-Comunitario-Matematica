@@ -167,9 +167,9 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                 onChange={(e) => setMotivoRechazo(e.target.value)}
                 className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500"
               >
-                <option value="exceso_uc">Exceso de Unidades de Crédito (Anaranjado)</option>
-                <option value="bajo_indice">Bajo Índice (Rojo)</option>
-                <option value="choque_horario">Choque de Horario (Morado)</option>
+                <option value="exceso_uc">Exceso de Unidades de Crédito</option>
+                <option value="bajo_indice">Bajo Índice</option>
+                <option value="choque_horario">Choque de Horario</option>
               </select>
             </div>
 
