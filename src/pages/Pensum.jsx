@@ -72,7 +72,15 @@ function Pensum() {
 
         {/* Tooltip al hacer hover */}
         {isHovered && (
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 text-white rounded-xl p-3 shadow-2xl text-xs pointer-events-none">
+          <div
+            className={`absolute z-50 w-60 bg-gray-900 text-white rounded-xl p-3 shadow-2xl text-xs pointer-events-none ${
+              materia.fila === 1 ? 'top-full mt-2' : 'bottom-full mb-2'
+            } ${
+              materia.semestre >= 8 ? 'right-0' :
+              materia.semestre <= 2 ? 'left-0' :
+              'left-1/2 -translate-x-1/2'
+            }`}
+          >
             <p className="font-bold text-sm mb-1">{materia.nombre}</p>
             <div className="space-y-1.5 text-gray-300">
               <p><span className="text-white font-semibold">Semestre:</span> {materia.semestre}</p>
@@ -92,12 +100,21 @@ function Pensum() {
               )}
               {tieneReqUC && (
                 <p className="flex items-center gap-1 text-amber-300">
-                  <Lock className="w-3 h-3" />
+                  <Lock className="w-3 h-3 flex-shrink-0" />
                   Requiere {typeof tieneReqUC === 'string' ? tieneReqUC : `${tieneReqUC} UC aprobadas`}
                 </p>
               )}
             </div>
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45" />
+            {/* Flechita del tooltip */}
+            <div
+              className={`absolute w-3 h-3 bg-gray-900 rotate-45 ${
+                materia.fila === 1 ? '-top-1.5' : '-bottom-1.5'
+              } ${
+                materia.semestre >= 8 ? 'right-6' :
+                materia.semestre <= 2 ? 'left-6' :
+                'left-1/2 -translate-x-1/2'
+              }`}
+            />
           </div>
         )}
       </div>
@@ -131,10 +148,10 @@ function Pensum() {
           </div>
 
           {/* ====== MAPA CURRICULAR - CUADRÍCULA ====== */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden mb-8">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg mb-8">
             
             {/* Encabezado de semestres */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-visible">
               <div className="min-w-[1200px]">
                 <div className="grid grid-cols-10 border-b border-gray-200">
                   {semestresLabels.map((label, idx) => (
