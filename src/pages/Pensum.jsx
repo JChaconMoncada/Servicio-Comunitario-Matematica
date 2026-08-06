@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Lock, Unlock, BookOpen, GraduationCap, Info, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, Lock, Unlock, BookOpen, GraduationCap, Info, Sparkles, X, Layers } from 'lucide-react'
 import Xarrow, { Xwrapper } from 'react-xarrows'
 import { pensumMaterias, electivasDisponibles, materiasNoInformatica, prelacionesPorUC, coloresSemestre, semestresLabels } from '../data/pensum'
 
@@ -95,7 +95,7 @@ function Pensum() {
               )}
               {materia.corequisito && (
                 <p className="text-cyan-300 text-[11px] font-semibold">
-                  * Debe cursarse simultáneamente con Física {materia.corequisito === 'fis1' ? '1' : '2'}
+                  * Debe cursarse simultáneamente con {pensumMaterias.find(m => m.id === materia.corequisito)?.nombre}
                 </p>
               )}
               {tieneReqUC && (
@@ -328,7 +328,7 @@ function Pensum() {
           onClick={() => setSelectedMateria(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 animate-fadeIn"
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto border border-gray-100 animate-fadeIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -395,6 +395,15 @@ function Pensum() {
                 <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-xl border border-purple-200">
                   <Sparkles className="w-5 h-5 text-purple-600" />
                   <p className="text-sm font-medium text-purple-800">Esta es una materia electiva — escoge entre las disponibles</p>
+                </div>
+              )}
+
+              {selectedMateria.corequisito && (
+                <div className="flex items-center gap-3 p-3 bg-cyan-50 rounded-xl border border-cyan-200">
+                  <Layers className="w-5 h-5 text-cyan-600 flex-shrink-0" />
+                  <p className="text-sm font-medium text-cyan-800">
+                    Debe cursarse simultáneamente con {pensumMaterias.find(m => m.id === selectedMateria.corequisito)?.nombre}
+                  </p>
                 </div>
               )}
             </div>

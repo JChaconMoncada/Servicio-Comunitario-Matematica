@@ -40,8 +40,8 @@ export const pensumMaterias = [
   { id: 'auto', nombre: 'Automatización', semestre: 5, fila: 4, uc: 4, prelaciones: ['prog2', 'fund_log'] },
   { id: 'an_num', nombre: 'Análisis Numérico', semestre: 5, fila: 5, uc: 3, prelaciones: ['mat4'] },
   { id: 'est2', nombre: 'Estadística 2', semestre: 5, fila: 7, uc: 3, prelaciones: ['est1'] },
-  { id: 'proy_sc', nombre: 'Proyecto Servicio Comunitario', semestre: 5, fila: 8, uc: 0, prelaciones: [], ucRequeridas: 78 },
-  { id: 'sem_sc', nombre: 'Seminario Servicio Comunitario', semestre: 5, fila: 9, uc: 0, prelaciones: [], ucRequeridas: 78 },
+  { id: 'proy_sc', nombre: 'Proyecto Servicio Comunitario', semestre: 5, fila: 8, uc: 0, prelaciones: [], ucRequeridas: 78, corequisito: 'sem_sc' },
+  { id: 'sem_sc', nombre: 'Seminario Servicio Comunitario', semestre: 5, fila: 9, uc: 0, prelaciones: [], ucRequeridas: 78, corequisito: 'proy_sc' },
 
   // === SEMESTRE VI ===
   { id: 'multi', nombre: 'Multimedia', semestre: 6, fila: 1, uc: 3, prelaciones: ['bd1'] },

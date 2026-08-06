@@ -59,8 +59,8 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3 sm:p-4 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 transform transition-all my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-3 sm:p-4 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 transform transition-all">
         
         {/* Header Modal */}
         <div className="bg-unet-blue px-6 py-4 flex justify-between items-center text-white flex-shrink-0">
@@ -146,8 +146,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
               )}
             </div>
           </div>
-
-        </div>
+          </div>
 
         {/* Sección de Rechazo (Nueva Funcionalidad) */}
         <div className="bg-orange-50 p-6 border-t border-orange-100 space-y-4">
@@ -209,6 +208,8 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
               {procesando ? 'Procesando y enviando correo...' : 'Rechazar Materias'}
             </button>
           </div>
+        </div>
+
         </div>
 
         {/* Footer Modal */}
