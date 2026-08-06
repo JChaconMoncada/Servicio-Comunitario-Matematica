@@ -180,8 +180,8 @@ function Pensum() {
                         key={`${preId}-${materia.id}`}
                         start={`materia-${preId}`}
                         end={`materia-${materia.id}`}
-                        color="#475569" // slate-600
-                        strokeWidth={2.5}
+                        color="#000000" // Negro puro para máxima visibilidad
+                        strokeWidth={3.5}
                         path="grid"
                         showHead={true}
                         headSize={4}
