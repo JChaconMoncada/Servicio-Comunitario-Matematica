@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Plus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users } from 'lucide-react'
+import emailjs from '@emailjs/browser'
 import { useInscripcion } from '../context/InscripcionContext'
 
 export default function VistaSeccionDetalle({ seccionId, onVolver }) {
@@ -47,7 +48,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     window.print()
   }
 
-  const handleEnviarCorreo = () => {
+  const handleEnviarCorreo = async () => {
     if (selectedRow === null || !seccion.estudiantes[selectedRow]) {
       alert('Por favor selecciona un estudiante en la tabla para notificarle por correo.')
       return
@@ -56,11 +57,27 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     const est = seccion.estudiantes[selectedRow]
     const mensaje = `Has sido inscrito correctamente para la materia ${seccion.materia}, sección ${seccion.seccion}, ${seccion.aula}, con el profesor ${seccion.profesor}`
 
-    setEmailNotice({
-      destinatario: est.correo,
-      estudianteNombre: est.nombre,
-      mensaje
-    })
+    try {
+      // Usar EmailJS con las credenciales dadas por el usuario
+      await emailjs.send(
+        'service_omar_angola', // Service ID
+        'template_UNET',       // Template ID
+        {
+          destinatario: est.correo,
+          mensaje: mensaje,
+        },
+        'p3KE-_nNVZb3wCTBE'    // Public Key
+      )
+
+      setEmailNotice({
+        destinatario: est.correo,
+        estudianteNombre: est.nombre,
+        mensaje
+      })
+    } catch (error) {
+      console.error('Error enviando el correo:', error)
+      alert('Hubo un error al intentar enviar el correo. Por favor revisa la consola para más detalles.')
+    }
   }
 
   return (
@@ -239,27 +256,28 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           Acciones y Operaciones de la Sección
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
-          {/* Cargar Sección Presencial (30 Estudiantes) */}
-          <button
-            onClick={handleCargarPresencial}
-            className="flex flex-col items-center justify-center p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all font-bold hover:shadow-lg"
-          >
-            <Users className="w-6 h-6 mb-1" />
-            <span>Cargar Sección Presencial</span>
-            <span className="text-xs text-blue-200 font-normal">(30 Estudiantes)</span>
-          </button>
-
-          {/* Cargar Sección Virtual (20 Estudiantes) */}
-          <button
-            onClick={handleCargarVirtual}
-            className="flex flex-col items-center justify-center p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition-all font-bold hover:shadow-lg"
-          >
-            <Users className="w-6 h-6 mb-1" />
-            <span>Cargar Sección Virtual</span>
-            <span className="text-xs text-emerald-200 font-normal">(20 Estudiantes)</span>
-          </button>
+          {/* Cargar Sección Presencial o Virtual dependiendo de la modalidad */}
+          {seccion.modalidad === 'Presencial' ? (
+            <button
+              onClick={handleCargarPresencial}
+              className="flex flex-col items-center justify-center p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all font-bold hover:shadow-lg"
+            >
+              <Users className="w-6 h-6 mb-1" />
+              <span>Cargar Sección Presencial</span>
+              <span className="text-xs text-blue-200 font-normal">(30 Estudiantes)</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleCargarVirtual}
+              className="flex flex-col items-center justify-center p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition-all font-bold hover:shadow-lg"
+            >
+              <Users className="w-6 h-6 mb-1" />
+              <span>Cargar Sección Virtual</span>
+              <span className="text-xs text-emerald-200 font-normal">(20 Estudiantes)</span>
+            </button>
+          )}
 
           {/* Autocompletar Sección */}
           <button
