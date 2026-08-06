@@ -1,8 +1,42 @@
 import React from 'react'
-import { X, UserCheck, Mail, CreditCard, BookOpen } from 'lucide-react'
+import { X, UserCheck, Mail, CreditCard, BookOpen, AlertTriangle } from 'lucide-react'
+import { useInscripcion } from '../context/InscripcionContext'
 
 export default function ModalDetalleEstudiante({ estudiante, onClose }) {
+  const { rechazarEstudiante } = useInscripcion()
+  const [razonRechazo, setRazonRechazo] = React.useState('')
+  const [reglaUC, setReglaUC] = React.useState('')
+  const [procesando, setProcesando] = React.useState(false)
+
   if (!estudiante) return null
+
+  const handleRechazar = async () => {
+    if (!reglaUC) {
+      alert("Por favor selecciona una regla de restricción de UC.")
+      return
+    }
+    if (!razonRechazo.trim()) {
+      alert("Por favor ingresa una razón para el rechazo que será enviada al estudiante.")
+      return
+    }
+
+    setProcesando(true)
+    let ucsProhibidas = []
+    if (reglaUC === '4') ucsProhibidas = [4]
+    else if (reglaUC === '3_y_4') ucsProhibidas = [3, 4]
+    else if (reglaUC === '2_3_y_4') ucsProhibidas = [2, 3, 4]
+
+    const result = await rechazarEstudiante(estudiante, ucsProhibidas, razonRechazo)
+    setProcesando(false)
+
+    if (result.success) {
+      alert(`Se han rechazado ${result.count} materia(s) que el estudiante había solicitado y se ha enviado un correo.`)
+      setRazonRechazo('')
+      setReglaUC('')
+    } else {
+      alert(result.error || "Ocurrió un error al rechazar las materias.")
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 backdrop-blur-sm animate-fadeIn">
@@ -63,6 +97,9 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                   } else if (item.estado === 'rojo') {
                     badgeColor = 'bg-red-500 text-white font-bold'
                     badgeText = 'Sin Cupo'
+                  } else if (item.estado === 'anaranjado') {
+                    badgeColor = 'bg-orange-500 text-white font-bold'
+                    badgeText = 'Rechazado (Límite UC)'
                   }
 
                   return (
@@ -85,6 +122,53 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
             </div>
           </div>
 
+        </div>
+
+        {/* Sección de Rechazo (Nueva Funcionalidad) */}
+        <div className="bg-orange-50 p-6 border-t border-orange-100 space-y-4">
+          <h5 className="text-sm font-bold text-orange-800 uppercase tracking-wider flex items-center mb-2">
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            Rechazar Solicitudes por Límite de UC
+          </h5>
+          <p className="text-xs text-orange-700">
+            Si el estudiante no cumple con las UC requeridas, puedes bloquear sus solicitudes para materias pesadas. Se le enviará un correo automáticamente.
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Restricción a aplicar:</label>
+              <select 
+                value={reglaUC} 
+                onChange={(e) => setReglaUC(e.target.value)}
+                className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">-- Selecciona una restricción --</option>
+                <option value="4">No puede ver materias de 4 UC</option>
+                <option value="3_y_4">No puede ver materias de 3 y 4 UC</option>
+                <option value="2_3_y_4">No puede ver materias de 2, 3 y 4 UC</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Razón del rechazo (para el correo):</label>
+              <textarea 
+                value={razonRechazo}
+                onChange={(e) => setRazonRechazo(e.target.value)}
+                placeholder="Ej. Según tu expediente, no cuentas con las UC requeridas para inscribir materias de este nivel."
+                className="w-full text-sm p-2 border border-orange-200 rounded-lg h-20 resize-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <button
+              onClick={handleRechazar}
+              disabled={procesando}
+              className={`w-full py-2 font-bold text-white rounded-lg shadow-sm transition-all text-sm ${
+                procesando ? 'bg-orange-400 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700 hover:shadow'
+              }`}
+            >
+              {procesando ? 'Procesando y enviando correo...' : 'Rechazar Materias'}
+            </button>
+          </div>
         </div>
 
         {/* Footer Modal */}

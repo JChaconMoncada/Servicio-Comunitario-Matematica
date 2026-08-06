@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { informaticaSubjects } from '../data/subjects'
+import { pensumMaterias } from '../data/pensum'
+import emailjs from '@emailjs/browser'
 
 const InscripcionContext = createContext()
 
@@ -249,10 +251,14 @@ export const InscripcionProvider = ({ children }) => {
         s.estudiantes.forEach(e => cedulasEnOtrasSecciones.add(e.cedula))
       })
 
-    // Filtrar solicitudes: estudiantes que pidieron esta materia y no están asignados
+    // Filtrar solicitudes: estudiantes que pidieron esta materia y no están asignados ni rechazados
     const candidatos = solicitudes.filter(sol => {
       if (cedulasEnOtrasSecciones.has(sol.cedula)) return false
-      return sol.materiasSolicitadas && sol.materiasSolicitadas.some(m => m.materia === sec.materia)
+      return sol.materiasSolicitadas && sol.materiasSolicitadas.some(m => 
+        m.materia === sec.materia && 
+        m.estado !== 'rojo' && 
+        m.estado !== 'anaranjado'
+      )
     })
 
     if (candidatos.length === 0) {
@@ -387,6 +393,73 @@ export const InscripcionProvider = ({ children }) => {
     }))
   }
 
+  // Rechazar estudiante por límite de UC y notificarle
+  const rechazarEstudiante = async (solicitud, reglasUC, razon) => {
+    // reglasUC será un arreglo de los UCs prohibidos, ej: [3, 4] o [4]
+    
+    // Identificar qué materias solicitadas caen en la restricción
+    const materiasARechazar = solicitud.materiasSolicitadas.filter(mReq => {
+      const infoMateria = pensumMaterias.find(p => p.nombre === mReq.materia)
+      if (infoMateria && reglasUC.includes(infoMateria.uc)) {
+        return true
+      }
+      return false
+    })
+
+    if (materiasARechazar.length === 0) {
+      return { success: false, error: 'El estudiante no solicitó materias que coincidan con esta restricción de UC.' }
+    }
+
+    const idsARechazar = materiasARechazar.map(m => m.id)
+
+    // 1. Actualizar en Supabase (solicitudes_materias)
+    const { error } = await supabase
+      .from('solicitudes_materias')
+      .update({ estado: 'anaranjado' }) // Estado anaranjado para rechazos de UC
+      .in('id', idsARechazar)
+
+    if (error) {
+      console.error("Error al rechazar estudiante en BD:", error)
+      return { success: false, error: 'Error al actualizar base de datos.' }
+    }
+
+    // 2. Actualizar estado local
+    setSolicitudes(prev => prev.map(s => {
+      if (s.id !== solicitud.id) return s
+      
+      const materiasActualizadas = s.materiasSolicitadas.map(m => {
+        if (idsARechazar.includes(m.id)) {
+          return { ...m, estado: 'anaranjado' }
+        }
+        return m
+      })
+
+      return { ...s, materiasSolicitadas: materiasActualizadas }
+    }))
+
+    // 3. Enviar correo de notificación
+    const nombresMateriasRechazadas = materiasARechazar.map(m => m.materia).join(', ')
+    const mensajeCorreo = `Hola ${solicitud.nombre}, tu solicitud para las siguientes materias ha sido rechazada por el departamento: ${nombresMateriasRechazadas}.\n\nRazón: ${razon}`
+
+    try {
+      await emailjs.send(
+        'service_omar_angola',
+        'template_UNET',
+        {
+          destinatario: solicitud.correo,
+          mensaje: mensajeCorreo,
+          message: mensajeCorreo,
+        },
+        'p3KE-_nNVZb3wCTBE'
+      )
+    } catch (err) {
+      console.error("Error enviando correo de rechazo:", err)
+      // Aunque falle el correo, el rechazo se procesó
+    }
+
+    return { success: true, count: materiasARechazar.length }
+  }
+
   return (
     <InscripcionContext.Provider
       value={{
@@ -409,6 +482,7 @@ export const InscripcionProvider = ({ children }) => {
         marcarVerificado,
         marcarNoInscrito,
         agregarFilaCupo,
+        rechazarEstudiante,
         loading
       }}
     >

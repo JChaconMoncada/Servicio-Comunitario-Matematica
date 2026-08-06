@@ -16,6 +16,10 @@ function Admin() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
+  const [isRecovering, setIsRecovering] = useState(false)
+  const [recoveryEmail, setRecoveryEmail] = useState('')
+  const [recoveryMessage, setRecoveryMessage] = useState('')
+  const [newPassword, setNewPassword] = useState('')
 
   // Pestaña o vista activa en el panel admin:
   // 'panel' | 'hojas_calculo' | 'listado_materia' | 'crear_secciones' | 'estado_sesiones' | 'detalle_seccion'
@@ -67,7 +71,9 @@ function Admin() {
 
   const handleLogin = (e) => {
     e.preventDefault()
-    if (username === 'admin' && password === 'admin123') {
+    const storedAdminPassword = localStorage.getItem('adminPassword') || 'admin123'
+    
+    if (username === 'admin' && password === storedAdminPassword) {
       setIsAuthenticated(true)
       setUserRole('admin')
       setLoginError('')
@@ -86,6 +92,43 @@ function Admin() {
     setUserRole('')
     setUsername('')
     setPassword('')
+  }
+
+  const handleRecoverPassword = async (e) => {
+    e.preventDefault()
+    setRecoveryMessage('')
+    setLoginError('')
+    
+    if (recoveryEmail.toLowerCase() === 'omar.angola@unet.edu.ve') {
+      const storedAdminPassword = localStorage.getItem('adminPassword') || 'admin123'
+      try {
+        await emailjs.send(
+          'service_omar_angola', 
+          'template_UNET',       
+          {
+            destinatario: recoveryEmail,
+            mensaje: `Has solicitado recuperar tu contraseña del Panel Admin. Tu contraseña actual es: ${storedAdminPassword}`,
+            message: `Has solicitado recuperar tu contraseña del Panel Admin. Tu contraseña actual es: ${storedAdminPassword}`,
+          },
+          'p3KE-_nNVZb3wCTBE'
+        )
+        setRecoveryMessage('¡Correo enviado! Revisa tu bandeja de entrada.')
+      } catch (error) {
+        setLoginError('Error al enviar el correo de recuperación.')
+      }
+    } else {
+      setLoginError('El correo ingresado no está autorizado para recuperar la contraseña del sistema.')
+    }
+  }
+
+  const handleCambiarContrasena = () => {
+    if (!newPassword || newPassword.length < 5) {
+      alert("La contraseña debe tener al menos 5 caracteres.")
+      return
+    }
+    localStorage.setItem('adminPassword', newPassword)
+    setNewPassword('')
+    alert("¡Contraseña de administrador cambiada con éxito!")
   }
 
   const materiasDisponiblesCount = Object.values(materiasHabilitadas).filter(Boolean).length
@@ -134,48 +177,106 @@ function Admin() {
                 </p>
               </div>
 
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                    Usuario
-                  </label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-unet-blue focus:border-transparent text-sm"
-                    placeholder="admin"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                    Contraseña
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-unet-blue focus:border-transparent text-sm"
-                    placeholder="admin123"
-                  />
-                </div>
-
-                {loginError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-xs font-semibold">
-                    {loginError}
+              {!isRecovering ? (
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                      Usuario
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-unet-blue focus:border-transparent text-sm"
+                      placeholder="admin"
+                    />
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  className="btn-primary w-full py-3 font-bold shadow-md hover:shadow-lg transition-all"
-                >
-                  Iniciar Sesión
-                </button>
-              </form>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                      Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-unet-blue focus:border-transparent text-sm"
+                      placeholder="admin123"
+                    />
+                  </div>
 
-              <div className="mt-6 text-center">
+                  {loginError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-xs font-semibold">
+                      {loginError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="btn-primary w-full py-3 font-bold shadow-md hover:shadow-lg transition-all"
+                  >
+                    Iniciar Sesión
+                  </button>
+
+                  <div className="text-center mt-4">
+                    <button 
+                      type="button" 
+                      onClick={() => { setIsRecovering(true); setLoginError(''); }}
+                      className="text-xs text-unet-blue font-semibold hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleRecoverPassword} className="space-y-5">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-4">Ingresa tu correo autorizado para enviarte la contraseña actual.</p>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                      Correo Electrónico
+                    </label>
+                    <input
+                      type="email"
+                      value={recoveryEmail}
+                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-unet-blue focus:border-transparent text-sm"
+                      placeholder="omar.angola@unet.edu.ve"
+                      required
+                    />
+                  </div>
+
+                  {loginError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-xs font-semibold">
+                      {loginError}
+                    </div>
+                  )}
+
+                  {recoveryMessage && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-700 text-xs font-semibold">
+                      {recoveryMessage}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="btn-primary w-full py-3 font-bold shadow-md hover:shadow-lg transition-all"
+                  >
+                    Recuperar Contraseña
+                  </button>
+
+                  <div className="text-center mt-4">
+                    <button 
+                      type="button" 
+                      onClick={() => { setIsRecovering(false); setLoginError(''); setRecoveryMessage(''); }}
+                      className="text-xs text-gray-500 font-semibold hover:underline"
+                    >
+                      ← Volver al login
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="mt-6 text-center border-t border-gray-100 pt-4">
                 <Link to="/" className="text-sm text-unet-blue hover:underline font-semibold">
                   ← Volver al Inicio
                 </Link>
@@ -247,7 +348,7 @@ function Admin() {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <FileSpreadsheet className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Inscriptos por Materias
+              <FileSpreadsheet className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Demanda de Estudiantes
             </button>
 
             {userRole === 'admin' && (
@@ -408,6 +509,33 @@ function Admin() {
                 </div>
               </div>
 
+              {/* Nueva Tarjeta: Cambiar Contraseña del Administrador */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <div className="flex flex-col md:flex-row gap-6 justify-between md:items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-unet-blue mb-2">Seguridad del Panel Admin</h2>
+                    <p className="text-gray-600 text-sm">
+                      Cambia la contraseña de acceso al panel de administrador.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <input 
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Nueva contraseña..."
+                      className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-unet-blue text-sm w-full md:w-48"
+                    />
+                    <button 
+                      onClick={handleCambiarContrasena}
+                      className="bg-unet-blue hover:bg-blue-800 text-white font-bold px-4 py-2 rounded-xl transition-all shadow text-sm whitespace-nowrap"
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
 
@@ -419,7 +547,7 @@ function Admin() {
                 <div>
                   <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-2xl font-bold text-unet-blue">Control de Inscriptos por Materias</h2>
+                      <h2 className="text-2xl font-bold text-unet-blue">Control de Demanda de Estudiantes</h2>
                       <p className="text-gray-600 text-sm">
                         Previsualización en formato de hoja de cálculo de los primeros 10 estudiantes por materia. Haz clic en una tabla para abrir el listado completo.
                       </p>

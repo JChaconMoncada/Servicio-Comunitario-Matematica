@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users } from 'lucide-react'
+import { Plus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, Users, CheckSquare, Square } from 'lucide-react'
 import emailjs from '@emailjs/browser'
 import { useInscripcion } from '../context/InscripcionContext'
 
@@ -13,8 +13,9 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     agregarFilaCupo
   } = useInscripcion()
 
-  const [selectedRow, setSelectedRow] = useState(null)
+  const [selectedRows, setSelectedRows] = useState([])
   const [emailNotice, setEmailNotice] = useState(null)
+  const [isSendingEmails, setIsSendingEmails] = useState(false)
 
   const seccion = secciones.find(s => s.id === seccionId)
 
@@ -44,41 +45,72 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     agregarFilaCupo(seccion.id)
   }
 
+  // --- Selección Múltiple ---
+  const estudiantesValidosIdx = seccion?.estudiantes
+    .map((est, index) => est ? index : -1)
+    .filter(index => index !== -1) || []
+
+  const handleSelectAll = () => {
+    if (estudiantesValidosIdx.length === 0) return
+    if (selectedRows.length === estudiantesValidosIdx.length) {
+      setSelectedRows([]) // Deseleccionar todos
+    } else {
+      setSelectedRows(estudiantesValidosIdx) // Seleccionar todos
+    }
+  }
+
+  const toggleRowSelection = (index, est) => {
+    if (!est) return;
+    if (selectedRows.includes(index)) {
+      setSelectedRows(selectedRows.filter(i => i !== index))
+    } else {
+      setSelectedRows([...selectedRows, index])
+    }
+  }
+  // -------------------------
+
   const handleGuardarPDF = () => {
     window.print()
   }
 
   const handleEnviarCorreo = async () => {
-    if (selectedRow === null || !seccion.estudiantes[selectedRow]) {
-      alert('Por favor selecciona un estudiante en la tabla para notificarle por correo.')
+    if (selectedRows.length === 0) {
+      alert('Por favor selecciona al menos un estudiante en la tabla para notificarle por correo.')
       return
     }
 
-    const est = seccion.estudiantes[selectedRow]
+    if (!window.confirm(`¿Estás seguro de enviar un correo a los ${selectedRows.length} estudiante(s) seleccionado(s)?`)) return;
+
+    setIsSendingEmails(true)
+    let enviados = 0;
     const mensaje = `Has sido inscrito correctamente para la materia ${seccion.materia}, sección ${seccion.seccion}, ${seccion.aula}, con el profesor ${seccion.profesor}`
 
-    try {
-      // Usar EmailJS con las credenciales dadas por el usuario
-      await emailjs.send(
-        'service_omar_angola', // Service ID
-        'template_UNET',       // Template ID
-        {
-          destinatario: est.correo,
-          mensaje: mensaje,
-          message: mensaje, // Para soportar la plantilla por defecto si está en inglés
-        },
-        'p3KE-_nNVZb3wCTBE'    // Public Key
-      )
-
-      setEmailNotice({
-        destinatario: est.correo,
-        estudianteNombre: est.nombre,
-        mensaje
-      })
-    } catch (error) {
-      console.error('Error enviando el correo:', error)
-      alert('Hubo un error al intentar enviar el correo. Por favor revisa la consola para más detalles.')
+    for (let idx of selectedRows) {
+      const est = seccion.estudiantes[idx]
+      try {
+        await emailjs.send(
+          'service_omar_angola',
+          'template_UNET',
+          {
+            destinatario: est.correo,
+            mensaje: mensaje,
+            message: mensaje,
+          },
+          'p3KE-_nNVZb3wCTBE'
+        )
+        enviados++;
+      } catch (error) {
+        console.error('Error enviando el correo a:', est.correo, error)
+      }
     }
+
+    setIsSendingEmails(false)
+    setEmailNotice({
+      destinatario: `${enviados} estudiante(s)`,
+      estudianteNombre: 'Envío Masivo / Múltiple',
+      mensaje
+    })
+    setSelectedRows([]) // Limpiar selección
   }
 
   return (
@@ -160,7 +192,13 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-unet-blue print:text-black print:bg-gray-200 text-white text-xs font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-center w-16">Nro</th>
+                <th className="py-3.5 px-4 text-center w-16 print:hidden cursor-pointer hover:bg-blue-800 transition-colors" onClick={handleSelectAll} title="Seleccionar/Deseleccionar todos">
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    {estudiantesValidosIdx.length > 0 && selectedRows.length === estudiantesValidosIdx.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                    <span>Sel.</span>
+                  </div>
+                </th>
+                <th className="py-3.5 px-4 text-center w-12">Nro</th>
                 <th className="py-3.5 px-4">Nombre</th>
                 <th className="py-3.5 px-4">Cédula</th>
                 <th className="py-3.5 px-4">Correo Electrónico</th>
@@ -171,17 +209,20 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
             <tbody className="divide-y divide-gray-200 text-sm">
               {Array.from({ length: seccion.capacidadMax }).map((_, index) => {
                 const est = seccion.estudiantes[index]
-                const isSelected = selectedRow === index
+                const isSelected = selectedRows.includes(index)
 
                 return (
                   <tr 
                     key={index}
-                    onClick={() => setSelectedRow(index)}
+                    onClick={() => toggleRowSelection(index, est)}
                     className={`cursor-pointer transition-colors ${
                       isSelected ? 'bg-blue-100/80 border-l-4 border-unet-blue font-semibold' : 
                       index % 2 === 0 ? 'bg-white hover:bg-blue-50/50' : 'bg-gray-50/50 hover:bg-blue-50/50'
                     }`}
                   >
+                    <td className="py-3 px-4 text-center text-unet-blue print:hidden">
+                      {est ? (isSelected ? <CheckSquare className="w-5 h-5 mx-auto" /> : <Square className="w-5 h-5 mx-auto text-gray-300" />) : null}
+                    </td>
                     <td className="py-3 px-4 text-center font-bold text-gray-500">
                       {index + 1}
                     </td>
@@ -232,7 +273,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                       </>
                     ) : (
                       <>
-                        <td className="py-3 px-4 text-gray-400 italic font-normal" colSpan={3}>
+                        <td className="py-3 px-4 text-gray-400 italic font-normal" colSpan={4}>
                           (Cupo disponible - Vacío)
                         </td>
                         <td className="py-3 px-4 text-center print:hidden">
@@ -306,10 +347,13 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           {/* Botón Enviar Correo */}
           <button
             onClick={handleEnviarCorreo}
-            className="flex items-center justify-center space-x-2 py-3 px-4 bg-blue-800 hover:bg-blue-900 text-white rounded-xl font-bold shadow transition-all"
+            disabled={isSendingEmails}
+            className={`flex items-center justify-center space-x-2 py-3 px-4 text-white rounded-xl font-bold shadow transition-all ${
+              isSendingEmails ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-800 hover:bg-blue-900'
+            }`}
           >
-            <Mail className="w-5 h-5" />
-            <span>Enviar Correo</span>
+            {isSendingEmails ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+            <span>{isSendingEmails ? 'Enviando Correos...' : `Enviar Correo (${selectedRows.length})`}</span>
           </button>
 
         </div>
