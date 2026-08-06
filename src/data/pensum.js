@@ -94,13 +94,13 @@ export const electivasDisponibles = [
   'Administración de Base de Datos',
   'Desarrollo de Aplicaciones Web',
   'Gerencia de Proyectos',
-  'Administración de Redes',
-  'Computación Aplicada a la Psicología'
+  'Administración de Redes'
 ]
 
 export const materiasNoInformatica = [
   'Computación 2',
-  'Computación Aplicada'
+  'Computación Aplicada',
+  'Computación Aplicada a la Psicología'
 ]
 
 export const prelacionesPorUC = [
