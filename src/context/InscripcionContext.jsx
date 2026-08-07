@@ -252,8 +252,9 @@ export const InscripcionProvider = ({ children }) => {
         s.estudiantes.forEach(e => cedulasEnOtrasSecciones.add(e.cedula))
       })
 
-    // Filtrar solicitudes: estudiantes que pidieron esta materia y no están asignados ni rechazados
+    // Filtrar solicitudes: estudiantes que pidieron esta materia en el periodo activo y no están asignados ni rechazados
     const candidatos = solicitudes.filter(sol => {
+      if (sol.periodo && sol.periodo !== periodoActivo) return false
       if (cedulasEnOtrasSecciones.has(sol.cedula)) return false
       return sol.materiasSolicitadas && sol.materiasSolicitadas.some(m => 
         m.materia === sec.materia && 
@@ -581,6 +582,89 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, count: solData.length }
   }
 
+  // Generar N solicitudes de prueba distribuidas aleatoriamente entre las materias habilitadas actuales
+  const generarDatosPruebaGlobal = async (cantidad = 60) => {
+    const materiasDisponibles = informaticaSubjects.filter(m => materiasHabilitadas[m])
+    if (materiasDisponibles.length === 0) {
+      return { success: false, error: 'No hay materias habilitadas para generar solicitudes de prueba.' }
+    }
+
+    const nombresDemo = [
+      'Alejandro Pérez', 'María Rodríguez', 'Carlos Gómez', 'Ana Fernández', 'José Luis Martínez',
+      'Daniela Sánchez', 'Gabriel López', 'Patricia Díaz', 'Luis Eduardo Torres', 'Sofia Benítez',
+      'Ricardo Mendoza', 'Valentina Ruiz', 'Fernando Castillo', 'Camila Morales', 'Javier Gutiérrez',
+      'Andrea Romero', 'Diego Navarro', 'Isabella Flores', 'Manuel Acosta', 'Gabriela Gil',
+      'Samuel Vargas', 'Lucía Paredes', 'Esteban Silva', 'Victoria Blanco', 'Mateo Medina',
+      'Paula Suárez', 'Santiago Molina', 'Natalia Delgado', 'Sebastián Rojas', 'Elena Castro'
+    ]
+
+    const timestamp = Date.now().toString().slice(-5)
+    const solicitudesInsert = []
+    const materiasPorIndice = []
+
+    for (let i = 1; i <= cantidad; i++) {
+      const idxNombre = (i - 1) % nombresDemo.length
+      const sufijo = Math.floor((i - 1) / nombresDemo.length) > 0 ? ` ${Math.floor((i - 1) / nombresDemo.length) + 1}` : ''
+      const cedula = `${30000000 + (i * 137) + Math.floor(Math.random() * 90)}`
+      const nombre = `${nombresDemo[idxNombre]}${sufijo}`
+      const correo = `estudiante.demo.${timestamp}.${i}@unet.edu.ve`
+      solicitudesInsert.push({ nombre, cedula, correo, periodo: periodoActivo })
+
+      // Cada estudiante solicita entre 1 y 2 materias aleatorias distintas de las habilitadas
+      const cantidadMaterias = materiasDisponibles.length > 1 && Math.random() > 0.5 ? 2 : 1
+      const materiasElegidas = []
+      const disponiblesCopy = [...materiasDisponibles]
+      for (let j = 0; j < cantidadMaterias && disponiblesCopy.length > 0; j++) {
+        const idx = Math.floor(Math.random() * disponiblesCopy.length)
+        materiasElegidas.push(disponiblesCopy.splice(idx, 1)[0])
+      }
+      materiasPorIndice.push(materiasElegidas)
+    }
+
+    // Insertar en Supabase solicitudes
+    const { data: solData, error: solError } = await supabase
+      .from('solicitudes')
+      .insert(solicitudesInsert)
+      .select()
+
+    if (solError) {
+      console.error('Error creando datos de prueba globales:', solError)
+      return { success: false, error: solError.message }
+    }
+
+    // Insertar solicitudes_materias para cada una, respetando la materia(s) elegida por estudiante
+    const matInsert = []
+    solData.forEach((s, idx) => {
+      materiasPorIndice[idx].forEach(materia => {
+        matInsert.push({
+          solicitud_id: s.id,
+          materia,
+          estado: 'gris'
+        })
+      })
+    })
+
+    const { data: matData, error: matError } = await supabase
+      .from('solicitudes_materias')
+      .insert(matInsert)
+      .select()
+
+    if (matError) {
+      console.error('Error insertando materias de prueba globales:', matError)
+      return { success: false, error: matError.message }
+    }
+
+    // Actualizar estado local
+    const nuevasSolicitudes = solData.map(s => ({
+      ...s,
+      materiasSolicitadas: matData.filter(m => m.solicitud_id === s.id)
+    }))
+
+    setSolicitudes(prev => [...nuevasSolicitudes, ...prev])
+
+    return { success: true, count: solData.length }
+  }
+
   return (
     <InscripcionContext.Provider
       value={{
@@ -606,6 +690,7 @@ export const InscripcionProvider = ({ children }) => {
         rechazarEstudiante,
         aprobarSeccion,
         generarDatosPrueba,
+        generarDatosPruebaGlobal,
         loading
       }}
     >

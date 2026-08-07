@@ -66,8 +66,26 @@ function Admin() {
     solicitudes,
     secciones,
     crearSeccion,
-    eliminarSeccion
+    eliminarSeccion,
+    generarDatosPruebaGlobal
   } = useInscripcion()
+
+  // Solo las solicitudes del periodo académico actualmente seleccionado
+  const solicitudesDelPeriodo = solicitudes.filter(s => s.periodo === periodoActivo)
+
+  const [isGenerandoDemoGlobal, setIsGenerandoDemoGlobal] = useState(false)
+
+  const handleGenerarDemoGlobal = async () => {
+    if (!window.confirm('¿Deseas generar 60 estudiantes de prueba distribuidos aleatoriamente entre las materias habilitadas?')) return
+    setIsGenerandoDemoGlobal(true)
+    const res = await generarDatosPruebaGlobal(60)
+    setIsGenerandoDemoGlobal(false)
+    if (res.success) {
+      alert(`¡Éxito! Se generaron ${res.count} solicitudes de prueba distribuidas entre las materias habilitadas.`)
+    } else {
+      alert(res.error || 'Error creando datos de prueba.')
+    }
+  }
 
   const handleLogin = (e) => {
     e.preventDefault()
@@ -458,7 +476,7 @@ function Admin() {
                   <div className="card text-center bg-white p-6 rounded-2xl shadow border border-gray-200">
                     <Users className="w-12 h-12 text-unet-blue mx-auto mb-3" />
                     <div className="text-4xl font-extrabold text-unet-blue mb-1">
-                      {solicitudes.length}
+                      {solicitudesDelPeriodo.length}
                     </div>
                     <div className="text-gray-600 text-sm font-semibold">Total de Inscritos ({periodoActivo})</div>
                   </div>
@@ -501,7 +519,7 @@ function Admin() {
                       <div className="flex items-center text-xs text-gray-600">
                         <Users className="w-3.5 h-3.5 mr-1" />
                         <span>
-                          {solicitudes.filter(s => s.materiasSolicitadas.some(m => m.materia === materia)).length} solicitudes
+                          {solicitudesDelPeriodo.filter(s => s.materiasSolicitadas.some(m => m.materia === materia)).length} solicitudes
                         </span>
                       </div>
                     </div>
@@ -552,15 +570,26 @@ function Admin() {
                         Previsualización en formato de hoja de cálculo de los primeros 10 estudiantes por materia. Haz clic en una tabla para abrir el listado completo.
                       </p>
                     </div>
-                    <div className="relative w-full md:w-72 flex-shrink-0">
-                      <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
-                      <input
-                        type="text"
-                        placeholder="Buscar materia..."
-                        value={searchInscriptosMateria}
-                        onChange={(e) => setSearchInscriptosMateria(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-unet-blue text-sm"
-                      />
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                      <div className="relative w-full md:w-72 flex-shrink-0">
+                        <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder="Buscar materia..."
+                          value={searchInscriptosMateria}
+                          onChange={(e) => setSearchInscriptosMateria(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-unet-blue text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={handleGenerarDemoGlobal}
+                        disabled={isGenerandoDemoGlobal}
+                        className={`px-4 py-2 rounded-xl font-bold text-sm shadow whitespace-nowrap transition-all ${
+                          isGenerandoDemoGlobal ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-unet-blue text-white hover:bg-blue-800'
+                        }`}
+                      >
+                        {isGenerandoDemoGlobal ? 'Generando...' : 'Generar 60 estudiantes de prueba'}
+                      </button>
                     </div>
                   </div>
 
@@ -569,7 +598,7 @@ function Admin() {
                     {Object.keys(materiasHabilitadas)
                       .filter(m => materiasHabilitadas[m] && m.toLowerCase().includes(searchInscriptosMateria.toLowerCase()))
                       .map((materiaNombre, idx) => {
-                      const filtrados = solicitudes.filter(s => s.materiasSolicitadas.some(m => m.materia === materiaNombre))
+                      const filtrados = solicitudesDelPeriodo.filter(s => s.materiasSolicitadas.some(m => m.materia === materiaNombre))
                       
                       return (
                         <div 
@@ -659,7 +688,7 @@ function Admin() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {solicitudes
+                          {solicitudesDelPeriodo
                             .filter(s => s.materiasSolicitadas.some(m => m.materia === materiaSeleccionadaDetalle))
                             .map((sol, index) => {
                               const matObj = sol.materiasSolicitadas.find(m => m.materia === materiaSeleccionadaDetalle)
