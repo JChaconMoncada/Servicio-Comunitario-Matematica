@@ -165,7 +165,7 @@ function Pensum() {
                 {/* Cuerpo de la cuadrícula: cada columna usa CSS Grid con filas explícitas
                     basadas en materia.fila, para que materias relacionadas por prelación
                     queden alineadas horizontalmente entre semestres (igual que el flujograma oficial) */}
-                <div className="grid grid-cols-10 gap-0">
+                <div className="grid grid-cols-10 gap-x-2">
                   {Array.from({ length: 10 }).map((_, semIdx) => {
                     const semestre = semIdx + 1
                     const materias = materiasPorSemestre[semestre]
@@ -176,7 +176,7 @@ function Pensum() {
                         style={{
                           borderLeft: semestre === 1 ? 'none' : undefined,
                           gridTemplateRows: `repeat(${MAX_FILA}, minmax(48px, auto))`,
-                          rowGap: '12px'
+                          rowGap: '20px'
                         }}
                       >
                         {materias.map((mat) => (
@@ -193,21 +193,26 @@ function Pensum() {
                 {pensumMaterias.map((materia) => {
                   if (!materia.prelaciones || materia.prelaciones.length === 0) return null;
                   return materia.prelaciones.map((preId) => {
-                    // Only draw arrow if both the source and target elements exist in the DOM
-                    // Since all subjects are rendered, we can safely draw them
+                    const preObj = pensumMaterias.find(m => m.id === preId)
+                    const mismaFila = preObj && preObj.fila === materia.fila
+
+                    // Cuando ambas materias están en la misma fila, la flecha es una línea recta
+                    // horizontal simple. Si están en filas distintas, se ancla por arriba/abajo
+                    // para que el tramo vertical viaje por el espacio vacío entre tarjetas
+                    // (rowGap) en vez de atravesar otras materias.
                     return (
                       <Xarrow
                         key={`${preId}-${materia.id}`}
                         start={`materia-${preId}`}
                         end={`materia-${materia.id}`}
-                        color="#000000" // Negro puro para máxima visibilidad
-                        strokeWidth={3.5}
-                        path="grid"
+                        color="#334155"
+                        strokeWidth={2}
+                        path={mismaFila ? 'straight' : 'grid'}
                         showHead={true}
-                        headSize={4}
+                        headSize={3.5}
                         startAnchor="right"
                         endAnchor="left"
-                        curveness={0.8}
+                        curveness={mismaFila ? 0 : 0.6}
                         zIndex={0}
                       />
                     )

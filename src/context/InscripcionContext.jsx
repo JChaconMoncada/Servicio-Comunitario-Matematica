@@ -532,12 +532,16 @@ export const InscripcionProvider = ({ children }) => {
     ]
 
     const timestamp = Date.now().toString().slice(-5)
+    // Base derivada del timestamp actual para evitar colisiones de cédula con
+    // datos de prueba generados en ejecuciones anteriores (la restricción UNIQUE
+    // de la BD hace que todo el lote falle si una sola cédula se repite).
+    const cedulaBase = 30000000 + (Date.now() % 60000000)
     const solicitudesInsert = []
     
     for (let i = 1; i <= cantidad; i++) {
       const idxNombre = (i - 1) % nombresDemo.length
       const sufijo = Math.floor((i - 1) / nombresDemo.length) > 0 ? ` ${Math.floor((i - 1) / nombresDemo.length) + 1}` : ''
-      const cedula = `${30000000 + (i * 100) + Math.floor(Math.random() * 90)}`
+      const cedula = `${cedulaBase + i}`
       const nombre = `${nombresDemo[idxNombre]}${sufijo}`
       const correo = `estudiante.demo.${timestamp}.${i}@unet.edu.ve`
       solicitudesInsert.push({ nombre, cedula, correo, periodo: periodoActivo })
@@ -599,13 +603,16 @@ export const InscripcionProvider = ({ children }) => {
     ]
 
     const timestamp = Date.now().toString().slice(-5)
+    // Base derivada del timestamp actual (distinta de la usada en generarDatosPrueba)
+    // para evitar colisiones de cédula entre ambos generadores y ejecuciones previas.
+    const cedulaBase = 30000000 + (Date.now() % 60000000) + 100000
     const solicitudesInsert = []
     const materiasPorIndice = []
 
     for (let i = 1; i <= cantidad; i++) {
       const idxNombre = (i - 1) % nombresDemo.length
       const sufijo = Math.floor((i - 1) / nombresDemo.length) > 0 ? ` ${Math.floor((i - 1) / nombresDemo.length) + 1}` : ''
-      const cedula = `${30000000 + (i * 137) + Math.floor(Math.random() * 90)}`
+      const cedula = `${cedulaBase + i}`
       const nombre = `${nombresDemo[idxNombre]}${sufijo}`
       const correo = `estudiante.demo.${timestamp}.${i}@unet.edu.ve`
       solicitudesInsert.push({ nombre, cedula, correo, periodo: periodoActivo })

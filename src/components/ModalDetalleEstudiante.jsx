@@ -12,10 +12,12 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
 
   // Bloquear el scroll de la página de fondo mientras el modal esté abierto
   React.useEffect(() => {
-    const originalStyle = window.getComputedStyle(document.body).overflow
     document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = originalStyle
+      // Se restaura explícitamente a vacío (valor por defecto del CSS) en vez de
+      // guardar/restaurar el valor computado, para evitar que quede bloqueado
+      // permanentemente si el modal se desmonta de forma inesperada.
+      document.body.style.overflow = ''
     }
   }, [])
 
