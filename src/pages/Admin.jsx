@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { 
   Settings, BarChart3, Users, BookOpen, ToggleLeft, ToggleRight, 
@@ -11,8 +11,10 @@ import ModalDetalleEstudiante from '../components/ModalDetalleEstudiante'
 import VistaSeccionDetalle from '../components/VistaSeccionDetalle'
 
 function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [userRole, setUserRole] = useState('') // 'admin' o 'asistente'
+  // Sesión y pestaña activa se persisten en sessionStorage para que sobrevivan a
+  // un recargo de página (F5) sin cerrar la sesión ni volver siempre al panel inicial.
+  const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem('admin_isAuthenticated') === 'true')
+  const [userRole, setUserRole] = useState(() => sessionStorage.getItem('admin_userRole') || '') // 'admin' o 'asistente'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -23,15 +25,44 @@ function Admin() {
 
   // Pestaña o vista activa en el panel admin:
   // 'panel' | 'hojas_calculo' | 'listado_materia' | 'crear_secciones' | 'estado_sesiones' | 'detalle_seccion'
-  const [activeTab, setActiveTab] = useState('panel')
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('admin_activeTab') || 'panel')
 
   // Estado para la materia seleccionada en la vista de listado general
-  const [materiaSeleccionadaDetalle, setMateriaSeleccionadaDetalle] = useState('Programación I')
+  const [materiaSeleccionadaDetalle, setMateriaSeleccionadaDetalle] = useState(() => sessionStorage.getItem('admin_materiaSeleccionadaDetalle') || 'Programación I')
 
   // Estado para el modal de detalle de estudiante
   const [estudianteModal, setEstudianteModal] = useState(null)
 
-  const [seccionSeleccionadaId, setSeccionSeleccionadaId] = useState(null)
+  const [seccionSeleccionadaId, setSeccionSeleccionadaId] = useState(() => {
+    const stored = sessionStorage.getItem('admin_seccionSeleccionadaId')
+    if (!stored) return null
+    // El id de la sección puede ser numérico (serial) o un UUID; sessionStorage
+    // siempre devuelve string, así que se convierte a número solo si aplica,
+    // para que la comparación estricta (===) en VistaSeccionDetalle funcione.
+    const comoNumero = Number(stored)
+    return Number.isNaN(comoNumero) ? stored : comoNumero
+  })
+
+  useEffect(() => {
+    sessionStorage.setItem('admin_isAuthenticated', isAuthenticated ? 'true' : 'false')
+    sessionStorage.setItem('admin_userRole', userRole)
+  }, [isAuthenticated, userRole])
+
+  useEffect(() => {
+    sessionStorage.setItem('admin_activeTab', activeTab)
+  }, [activeTab])
+
+  useEffect(() => {
+    sessionStorage.setItem('admin_materiaSeleccionadaDetalle', materiaSeleccionadaDetalle)
+  }, [materiaSeleccionadaDetalle])
+
+  useEffect(() => {
+    if (seccionSeleccionadaId) {
+      sessionStorage.setItem('admin_seccionSeleccionadaId', seccionSeleccionadaId)
+    } else {
+      sessionStorage.removeItem('admin_seccionSeleccionadaId')
+    }
+  }, [seccionSeleccionadaId])
 
   // Buscador para Demanda de Estudiantes
   const [searchInscriptosMateria, setSearchInscriptosMateria] = useState('')
@@ -110,6 +141,12 @@ function Admin() {
     setUserRole('')
     setUsername('')
     setPassword('')
+    setActiveTab('panel')
+    setSeccionSeleccionadaId(null)
+    sessionStorage.removeItem('admin_isAuthenticated')
+    sessionStorage.removeItem('admin_userRole')
+    sessionStorage.removeItem('admin_activeTab')
+    sessionStorage.removeItem('admin_seccionSeleccionadaId')
   }
 
   const handleRecoverPassword = async (e) => {

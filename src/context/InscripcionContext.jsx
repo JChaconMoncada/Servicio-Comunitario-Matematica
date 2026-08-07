@@ -396,8 +396,12 @@ export const InscripcionProvider = ({ children }) => {
     }))
   }
 
-  // Rechazar estudiante por límite de UC y notificarle
-  const rechazarEstudiante = async (solicitud, reglasUC, razon, motivo = 'exceso_uc') => {
+  // Rechazar estudiante por límite de UC/índice y notificarle. Se usa para motivos
+  // 'exceso_uc' y 'bajo_indice', que son políticas generales del departamento y por
+  // lo tanto aplican a TODAS las materias solicitadas por el estudiante que coincidan
+  // con esa(s) UC. El choque de horario se maneja aparte con resolverChoqueHorario,
+  // ya que es específico de una sola materia (la de la sección actual).
+  const rechazarEstudiante = async (solicitud, reglasUC, razon, motivo = 'exceso_uc', seccionId = null, indexEstudiante = null) => {
     // reglasUC será un arreglo de los UCs prohibidos, ej: [3, 4] o [4]
     
     // Identificar qué materias solicitadas caen en la restricción
@@ -414,7 +418,7 @@ export const InscripcionProvider = ({ children }) => {
     }
 
     const idsARechazar = materiasARechazar.map(m => m.id)
-    const estadoRechazo = motivo === 'bajo_indice' ? 'rojo' : motivo === 'choque_horario' ? 'morado' : 'anaranjado'
+    const estadoRechazo = motivo === 'bajo_indice' ? 'rojo' : 'anaranjado'
 
     // 1. Actualizar en Supabase (solicitudes_materias)
     const { error } = await supabase
@@ -441,7 +445,22 @@ export const InscripcionProvider = ({ children }) => {
       return { ...s, materiasSolicitadas: materiasActualizadas }
     }))
 
-    // 3. Enviar correo de notificación
+    // 3. Si el rechazo viene de una fila específica de una sección, eliminarlo de esa
+    // sección (libera el cupo), igual que hace marcarNoInscrito.
+    if (seccionId && indexEstudiante !== null) {
+      const sec = secciones.find(s => s.id === seccionId)
+      const est = sec?.estudiantes[indexEstudiante]
+      if (est?.id) {
+        await supabase.from('secciones_estudiantes').delete().eq('id', est.id)
+      }
+      setSecciones(prev => prev.map(s => {
+        if (s.id !== seccionId) return s
+        const copy = s.estudiantes.filter((_, idx) => idx !== indexEstudiante)
+        return { ...s, estudiantes: copy.map((e, i) => ({ ...e, nro: i + 1 })) }
+      }))
+    }
+
+    // 4. Enviar correo de notificación
     const nombresMateriasRechazadas = materiasARechazar.map(m => m.materia).join(', ')
     const mensajeCorreo = `Hola ${solicitud.nombre}, tu solicitud para las siguientes materias ha sido rechazada por el departamento: ${nombresMateriasRechazadas}.\n\nRazón: ${razon}`
 
@@ -462,6 +481,92 @@ export const InscripcionProvider = ({ children }) => {
     }
 
     return { success: true, count: materiasARechazar.length }
+  }
+
+  // Resolver Choque de Horario: a diferencia de exceso_uc/bajo_indice, esto es
+  // específico de UNA sola materia (la de la sección actual). Al presionarlo:
+  // 1. Se elimina al estudiante de la sección actual (libera el cupo).
+  // 2. Se busca automáticamente otra sección ABIERTA de la MISMA materia con cupo
+  //    disponible y se transfiere ahí directamente.
+  // 3. Si no hay ninguna sección disponible, queda con estado 'morado' (choque)
+  //    pendiente de reubicación hasta que se abra/vacíe otra sección.
+  const resolverChoqueHorario = async (seccionId, indexEstudiante) => {
+    const sec = secciones.find(s => s.id === seccionId)
+    if (!sec) return { success: false, error: 'Sección no encontrada' }
+    const estudiante = sec.estudiantes[indexEstudiante]
+    if (!estudiante) return { success: false, error: 'Estudiante no encontrado' }
+
+    const sol = solicitudes.find(s => s.cedula === estudiante.cedula)
+    const materiaEnSeccion = sol?.materiasSolicitadas.find(m => m.materia === sec.materia)
+
+    // 1. Eliminar de la sección actual
+    if (estudiante.id) {
+      await supabase.from('secciones_estudiantes').delete().eq('id', estudiante.id)
+    }
+    setSecciones(prev => prev.map(s => {
+      if (s.id !== seccionId) return s
+      const copy = s.estudiantes.filter((_, idx) => idx !== indexEstudiante)
+      return { ...s, estudiantes: copy.map((e, i) => ({ ...e, nro: i + 1 })) }
+    }))
+
+    // 2. Buscar otra sección de la misma materia, abierta y con cupo disponible
+    const otraSeccion = secciones.find(s =>
+      s.id !== seccionId &&
+      s.materia === sec.materia &&
+      !s.aprobada &&
+      s.estudiantes.length < (s.capacidadMax || s.capacidad_max) &&
+      !s.estudiantes.some(e => e.cedula === estudiante.cedula)
+    )
+
+    if (otraSeccion) {
+      const nuevoNro = otraSeccion.estudiantes.length + 1
+      const { data, error } = await supabase
+        .from('secciones_estudiantes')
+        .insert([{
+          seccion_id: otraSeccion.id,
+          nro: nuevoNro,
+          nombre: estudiante.nombre,
+          cedula: estudiante.cedula,
+          correo: estudiante.correo,
+          verificado: false
+        }])
+        .select()
+        .single()
+
+      if (!error && data) {
+        setSecciones(prev => prev.map(s => {
+          if (s.id !== otraSeccion.id) return s
+          return {
+            ...s,
+            estudiantes: [...s.estudiantes, {
+              id: data.id, nro: data.nro, nombre: data.nombre, cedula: data.cedula, correo: data.correo, verificado: data.verificado
+            }]
+          }
+        }))
+      }
+
+      // Asegurar que la materia quede en estado 'gris' (pendiente de verificación en la nueva sección)
+      if (materiaEnSeccion && materiaEnSeccion.estado !== 'gris') {
+        await supabase.from('solicitudes_materias').update({ estado: 'gris' }).eq('id', materiaEnSeccion.id)
+        setSolicitudes(prev => prev.map(s => {
+          if (s.id !== sol.id) return s
+          return { ...s, materiasSolicitadas: s.materiasSolicitadas.map(m => m.id === materiaEnSeccion.id ? { ...m, estado: 'gris' } : m) }
+        }))
+      }
+
+      return { success: true, transferido: true, nuevaSeccion: otraSeccion.seccion }
+    }
+
+    // 3. No hay otra sección disponible: marcar como choque (morado), pendiente de reubicación
+    if (materiaEnSeccion) {
+      await supabase.from('solicitudes_materias').update({ estado: 'morado' }).eq('id', materiaEnSeccion.id)
+      setSolicitudes(prev => prev.map(s => {
+        if (s.id !== sol.id) return s
+        return { ...s, materiasSolicitadas: s.materiasSolicitadas.map(m => m.id === materiaEnSeccion.id ? { ...m, estado: 'morado' } : m) }
+      }))
+    }
+
+    return { success: true, transferido: false }
   }
 
   // Aprobar Sección (bloquea la sección y resetea a los estudiantes con choque de horario 'morado' a 'gris')
@@ -695,6 +800,7 @@ export const InscripcionProvider = ({ children }) => {
         marcarNoInscrito,
         agregarFilaCupo,
         rechazarEstudiante,
+        resolverChoqueHorario,
         aprobarSeccion,
         generarDatosPrueba,
         generarDatosPruebaGlobal,
