@@ -445,20 +445,33 @@ export const InscripcionProvider = ({ children }) => {
       return { ...s, materiasSolicitadas: materiasActualizadas }
     }))
 
-    // 3. Si el rechazo viene de una fila específica de una sección, eliminarlo de esa
-    // sección (libera el cupo), igual que hace marcarNoInscrito.
-    if (seccionId && indexEstudiante !== null) {
-      const sec = secciones.find(s => s.id === seccionId)
-      const est = sec?.estudiantes[indexEstudiante]
-      if (est?.id) {
-        await supabase.from('secciones_estudiantes').delete().eq('id', est.id)
-      }
-      setSecciones(prev => prev.map(s => {
-        if (s.id !== seccionId) return s
-        const copy = s.estudiantes.filter((_, idx) => idx !== indexEstudiante)
-        return { ...s, estudiantes: copy.map((e, i) => ({ ...e, nro: i + 1 })) }
-      }))
+    // 3. Eliminar al estudiante de TODAS las secciones de las materias rechazadas
+    // (no solo de la fila donde se hizo clic), para evitar que quede una copia
+    // residual "verificado" en otra sección que haga que la Vista Completa
+    // siga mostrándolo en verde a pesar del rechazo.
+    const materiasNombresRechazadas = new Set(materiasARechazar.map(m => m.materia))
+    const idsAEliminar = []
+    secciones.forEach(s => {
+      if (!materiasNombresRechazadas.has(s.materia)) return
+      s.estudiantes.forEach(e => {
+        if (e.cedula === solicitud.cedula && e.id) idsAEliminar.push(e.id)
+      })
+    })
+
+    if (idsAEliminar.length > 0) {
+      const { error: errDelete } = await supabase
+        .from('secciones_estudiantes')
+        .delete()
+        .in('id', idsAEliminar)
+      if (errDelete) console.error('Error eliminando filas residuales al rechazar:', errDelete)
     }
+
+    setSecciones(prev => prev.map(s => {
+      if (!materiasNombresRechazadas.has(s.materia)) return s
+      const copy = s.estudiantes.filter(e => e.cedula !== solicitud.cedula)
+      if (copy.length === s.estudiantes.length) return s
+      return { ...s, estudiantes: copy.map((e, i) => ({ ...e, nro: i + 1 })) }
+    }))
 
     // 4. Enviar correo de notificación
     const nombresMateriasRechazadas = materiasARechazar.map(m => m.materia).join(', ')
@@ -499,13 +512,27 @@ export const InscripcionProvider = ({ children }) => {
     const sol = solicitudes.find(s => s.cedula === estudiante.cedula)
     const materiaEnSeccion = sol?.materiasSolicitadas.find(m => m.materia === sec.materia)
 
-    // 1. Eliminar de la sección actual
-    if (estudiante.id) {
-      await supabase.from('secciones_estudiantes').delete().eq('id', estudiante.id)
+    // 1. Eliminar de la sección actual y de cualquier otra copia residual del
+    // estudiante en secciones de la MISMA materia (evita filas "verificado"
+    // duplicadas que hagan que la Vista Completa lo siga mostrando en verde).
+    const idsAEliminar = []
+    secciones.forEach(s => {
+      if (s.materia !== sec.materia) return
+      s.estudiantes.forEach(e => {
+        if (e.cedula === estudiante.cedula && e.id) idsAEliminar.push(e.id)
+      })
+    })
+    if (idsAEliminar.length > 0) {
+      const { error: errDelete } = await supabase
+        .from('secciones_estudiantes')
+        .delete()
+        .in('id', idsAEliminar)
+      if (errDelete) console.error('Error eliminando filas residuales al resolver choque:', errDelete)
     }
     setSecciones(prev => prev.map(s => {
-      if (s.id !== seccionId) return s
-      const copy = s.estudiantes.filter((_, idx) => idx !== indexEstudiante)
+      if (s.materia !== sec.materia) return s
+      const copy = s.estudiantes.filter(e => e.cedula !== estudiante.cedula)
+      if (copy.length === s.estudiantes.length) return s
       return { ...s, estudiantes: copy.map((e, i) => ({ ...e, nro: i + 1 })) }
     }))
 

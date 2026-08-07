@@ -730,12 +730,18 @@ function Admin() {
                             .map((sol, index) => {
                               const matObj = sol.materiasSolicitadas.find(m => m.materia === materiaSeleccionadaDetalle)
                               
-                              const estaVerificado = secciones.some(sec => 
+                              // El estado de rechazo (rojo/anaranjado/morado) es siempre autoritativo:
+                              // si el departamento ya rechazó al estudiante, no debe mostrarse en
+                              // verde aunque exista alguna fila residual "verificado" en otra sección.
+                              const estadoSolicitud = matObj ? matObj.estado : 'gris'
+                              const esRechazado = ['rojo', 'anaranjado', 'morado'].includes(estadoSolicitud)
+
+                              const estaVerificado = !esRechazado && secciones.some(sec => 
                                 sec.materia === materiaSeleccionadaDetalle && 
                                 sec.estudiantes.some(e => e.cedula === sol.cedula && e.verificado)
                               )
 
-                              const estado = estaVerificado ? 'verde' : (matObj ? matObj.estado : 'gris')
+                              const estado = estaVerificado ? 'verde' : estadoSolicitud
 
                               return (
                                 <tr key={index} className="hover:bg-blue-50/40 transition-colors">
