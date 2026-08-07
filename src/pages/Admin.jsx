@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import emailjs from '@emailjs/browser'
 import { 
   Settings, BarChart3, Users, BookOpen, ToggleLeft, ToggleRight, 
   AlertCircle, CheckCircle, Lock, LogOut, Search, PlusCircle, 
