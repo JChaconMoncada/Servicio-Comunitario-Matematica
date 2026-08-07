@@ -73,46 +73,6 @@ function Pensum() {
             </p>
           </div>
         </div>
-
-        {/* Tooltip al hacer hover (smart position for top row) */}
-        {isHovered && (
-          <div className={`absolute z-50 left-1/2 -translate-x-1/2 w-56 bg-gray-900 text-white rounded-xl p-3 shadow-2xl text-xs pointer-events-none ${
-            materia.fila <= 2 ? 'top-full mt-2' : 'bottom-full mb-2'
-          }`}>
-            <p className="font-bold text-sm mb-1">{materia.nombre}</p>
-            <div className="space-y-1.5 text-gray-300">
-              <p><span className="text-white font-semibold">Semestre:</span> {materia.semestre}</p>
-              {materia.uc > 0 && <p><span className="text-white font-semibold">UC:</span> {materia.uc}</p>}
-              {prelNombres.length > 0 && (
-                <div>
-                  <span className="text-white font-semibold">Prelaciones:</span>
-                  <ul className="mt-0.5 space-y-0.5">
-                    {prelNombres.map((p, i) => (
-                      <li key={i} className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 flex-shrink-0" />
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {materia.corequisito && (
-                <p className="text-cyan-300 text-[11px] font-semibold">
-                  * Debe cursarse simultáneamente con {pensumMaterias.find(m => m.id === materia.corequisito)?.nombre}
-                </p>
-              )}
-              {tieneReqUC && (
-                <p className="flex items-center gap-1 text-amber-300">
-                  <Lock className="w-3 h-3" />
-                  Requiere {typeof tieneReqUC === 'string' ? tieneReqUC : `${tieneReqUC} UC aprobadas`}
-                </p>
-              )}
-            </div>
-            <div className={`absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45 ${
-              materia.fila <= 2 ? '-top-1.5' : '-bottom-1.5'
-            }`} />
-          </div>
-        )}
       </div>
     )
   }
@@ -148,7 +108,7 @@ function Pensum() {
             
             {/* Encabezado de semestres */}
             <div className="overflow-x-auto relative">
-              <div className="min-w-[1200px]">
+              <div className="min-w-[1200px] relative">
                 <Xwrapper>
                 <div className="grid grid-cols-10 border-b border-gray-200">
                   {semestresLabels.map((label, idx) => (
