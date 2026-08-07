@@ -27,7 +27,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   if (!estudiante) return null
 
   const handleRechazar = async () => {
-    if (!reglaUC && motivoRechazo !== 'choque_horario') {
+    if (!reglaUC && motivoRechazo === 'exceso_uc') {
       alert("Por favor selecciona una regla de restricción de UC.")
       return
     }
@@ -38,8 +38,9 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
 
     setProcesando(true)
     let ucsProhibidas = []
-    if (motivoRechazo === 'choque_horario') {
-      // Para choque de horario, rechazar TODAS las materias solicitadas
+    if (motivoRechazo === 'choque_horario' || motivoRechazo === 'bajo_indice') {
+      // Para choque de horario y bajo índice, rechazar TODAS las materias solicitadas
+      // (la restricción por rango de UC solo aplica al motivo de Exceso de UC).
       const todasLasUC = [...new Set(estudiante.materiasSolicitadas.map(m => {
         const info = pensumMaterias.find(p => p.nombre === m.materia)
         return info ? info.uc : -1
@@ -177,7 +178,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
               </select>
             </div>
 
-            {motivoRechazo !== 'choque_horario' && (
+            {motivoRechazo === 'exceso_uc' && (
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Restricción a aplicar:</label>
               <select 
