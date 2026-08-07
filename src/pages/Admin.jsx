@@ -1075,10 +1075,12 @@ function Admin() {
       </div>
 
       {/* Modal Emergente de Detalle de Estudiante (Página 4 Top) */}
-      <ModalDetalleEstudiante
-        estudiante={estudianteModal}
-        onClose={() => setEstudianteModal(null)}
-      />
+      {estudianteModal && (
+        <ModalDetalleEstudiante
+          estudiante={estudianteModal}
+          onClose={() => setEstudianteModal(null)}
+        />
+      )}
     </div>
   )
 }

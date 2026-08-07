@@ -10,8 +10,11 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
   const [motivoRechazo, setMotivoRechazo] = React.useState('exceso_uc')
   const [procesando, setProcesando] = React.useState(false)
 
-  // Bloquear el scroll de la página de fondo mientras el modal esté abierto
+  // Bloquear el scroll de la página de fondo solo mientras el modal esté realmente
+  // abierto (con un estudiante seleccionado). Depende de `estudiante` porque este
+  // componente puede quedar montado permanentemente con estudiante=null.
   React.useEffect(() => {
+    if (!estudiante) return
     document.body.style.overflow = 'hidden'
     return () => {
       // Se restaura explícitamente a vacío (valor por defecto del CSS) en vez de
@@ -19,7 +22,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
       // permanentemente si el modal se desmonta de forma inesperada.
       document.body.style.overflow = ''
     }
-  }, [])
+  }, [estudiante])
 
   if (!estudiante) return null
 
