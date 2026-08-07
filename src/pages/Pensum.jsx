@@ -13,6 +13,9 @@ function Pensum() {
     materiasPorSemestre[i] = pensumMaterias.filter(m => m.semestre === i)
   }
 
+  // Cantidad máxima de filas usadas en todo el pensum (para definir las filas del grid CSS)
+  const MAX_FILA = Math.max(...pensumMaterias.map(m => m.fila))
+
   // Obtener prelaciones de una materia (nombres)
   const getPrelacionesNombres = (materia) => {
     if (!materia.prelaciones || materia.prelaciones.length === 0) return []
@@ -159,7 +162,9 @@ function Pensum() {
                   ))}
                 </div>
 
-                {/* Cuerpo de la cuadrícula */}
+                {/* Cuerpo de la cuadrícula: cada columna usa CSS Grid con filas explícitas
+                    basadas en materia.fila, para que materias relacionadas por prelación
+                    queden alineadas horizontalmente entre semestres (igual que el flujograma oficial) */}
                 <div className="grid grid-cols-10 gap-0">
                   {Array.from({ length: 10 }).map((_, semIdx) => {
                     const semestre = semIdx + 1
@@ -167,11 +172,17 @@ function Pensum() {
                     return (
                       <div
                         key={semestre}
-                        className="border-r border-gray-100 p-2 space-y-4 min-h-[400px] flex flex-col justify-start"
-                        style={{ borderLeft: semestre === 1 ? 'none' : undefined }}
+                        className="border-r border-gray-100 p-2 grid"
+                        style={{
+                          borderLeft: semestre === 1 ? 'none' : undefined,
+                          gridTemplateRows: `repeat(${MAX_FILA}, minmax(48px, auto))`,
+                          rowGap: '12px'
+                        }}
                       >
                         {materias.map((mat) => (
-                          <MateriaCard key={mat.id} materia={mat} />
+                          <div key={mat.id} style={{ gridRow: mat.fila, alignSelf: 'center' }}>
+                            <MateriaCard materia={mat} />
+                          </div>
                         ))}
                       </div>
                     )

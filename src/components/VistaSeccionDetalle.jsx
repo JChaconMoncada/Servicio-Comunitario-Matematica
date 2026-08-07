@@ -220,6 +220,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
               </p>
             </div>
           </div>
+        </div>
       </div>
 
       {/* Banner de Sección Aprobada */}
