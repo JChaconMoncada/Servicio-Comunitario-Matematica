@@ -200,12 +200,16 @@ function Pensum() {
                     // horizontal simple. Si están en filas distintas, se ancla por arriba/abajo
                     // para que el tramo vertical viaje por el espacio vacío entre tarjetas
                     // (rowGap) en vez de atravesar otras materias.
+                    // Color de la flecha según el semestre de la materia de origen (la prelación),
+                    // así se distingue visualmente de dónde viene cada línea.
+                    const colorFlecha = preObj ? getColor(preObj.semestre) : '#334155'
+
                     return (
                       <Xarrow
                         key={`${preId}-${materia.id}`}
                         start={`materia-${preId}`}
                         end={`materia-${materia.id}`}
-                        color="#334155"
+                        color={colorFlecha}
                         strokeWidth={2}
                         path={mismaFila ? 'straight' : 'grid'}
                         showHead={true}
