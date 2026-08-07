@@ -396,20 +396,20 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
 
                             // --- Dos botones principales ---
                             return (
-                              <div className="flex items-center justify-center gap-1.5">
+                              <div className="flex flex-col items-stretch gap-1.5 w-32 mx-auto">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); marcarVerificado(seccion.id, index); }}
-                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold shadow transition-all"
+                                  className="inline-flex items-center justify-center py-1.5 px-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold shadow transition-all"
                                   title="Verificado"
                                 >
                                   <CheckCircle className="w-3.5 h-3.5 mr-1" /> Verificado
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setFilaExpandida(index); }}
-                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow transition-all"
+                                  className="inline-flex items-center justify-center py-1.5 px-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow transition-all"
                                   title="No se puede inscribir"
                                 >
-                                  <UserX className="w-3.5 h-3.5 mr-1" /> No se puede inscribir <ChevronDown className="w-3 h-3 ml-1" />
+                                  <UserX className="w-3.5 h-3.5 mr-1" /> No se puede <ChevronDown className="w-3 h-3 ml-1" />
                                 </button>
                               </div>
                             )
