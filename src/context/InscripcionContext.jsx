@@ -26,6 +26,7 @@ export const InscripcionProvider = ({ children }) => {
   
   const [solicitudes, setSolicitudes] = useState([])
   const [secciones, setSecciones] = useState([])
+  const [historialChoques, setHistorialChoques] = useState([])
   const [loading, setLoading] = useState(true)
 
   // Cargar datos iniciales desde Supabase
@@ -92,6 +93,16 @@ export const InscripcionProvider = ({ children }) => {
             materiasSolicitadas: s.solicitudes_materias || []
           }))
           setSolicitudes(solFormateadas)
+        }
+
+        // Cargar historial de choques de horario (más reciente primero)
+        const { data: historialData, error: historialError } = await supabase
+          .from('historial_choques_horario')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (!historialError && historialData) {
+          setHistorialChoques(historialData)
         }
 
       } catch (error) {
@@ -503,6 +514,23 @@ export const InscripcionProvider = ({ children }) => {
   //    disponible y se transfiere ahí directamente.
   // 3. Si no hay ninguna sección disponible, queda con estado 'morado' (choque)
   //    pendiente de reubicación hasta que se abra/vacíe otra sección.
+  // Registra en el historial (tabla historial_choques_horario) cada resolución
+  // de choque de horario, exitosa (transferido) o pendiente (sin sección disponible).
+  const registrarHistorialChoque = async ({ cedula, nombre, materia, seccion_origen, seccion_destino, transferido, periodo }) => {
+    const { data, error } = await supabase
+      .from('historial_choques_horario')
+      .insert([{ cedula, nombre, materia, seccion_origen, seccion_destino, transferido, periodo }])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error registrando historial de choque de horario:', error)
+      return
+    }
+
+    setHistorialChoques(prev => [data, ...prev])
+  }
+
   const resolverChoqueHorario = async (seccionId, indexEstudiante) => {
     const sec = secciones.find(s => s.id === seccionId)
     if (!sec) return { success: false, error: 'Sección no encontrada' }
@@ -581,6 +609,16 @@ export const InscripcionProvider = ({ children }) => {
         }))
       }
 
+      await registrarHistorialChoque({
+        cedula: estudiante.cedula,
+        nombre: estudiante.nombre,
+        materia: sec.materia,
+        seccion_origen: sec.seccion,
+        seccion_destino: otraSeccion.seccion,
+        transferido: true,
+        periodo: periodoActivo
+      })
+
       return { success: true, transferido: true, nuevaSeccion: otraSeccion.seccion }
     }
 
@@ -592,6 +630,16 @@ export const InscripcionProvider = ({ children }) => {
         return { ...s, materiasSolicitadas: s.materiasSolicitadas.map(m => m.id === materiaEnSeccion.id ? { ...m, estado: 'morado' } : m) }
       }))
     }
+
+    await registrarHistorialChoque({
+      cedula: estudiante.cedula,
+      nombre: estudiante.nombre,
+      materia: sec.materia,
+      seccion_origen: sec.seccion,
+      seccion_destino: null,
+      transferido: false,
+      periodo: periodoActivo
+    })
 
     return { success: true, transferido: false }
   }
@@ -818,6 +866,7 @@ export const InscripcionProvider = ({ children }) => {
         getMateriasHabilitadas,
         solicitudes,
         secciones,
+        historialChoques,
         agregarSolicitud,
         crearSeccion,
         eliminarSeccion,

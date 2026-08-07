@@ -97,6 +97,7 @@ function Admin() {
     toggleMateria,
     solicitudes,
     secciones,
+    historialChoques,
     crearSeccion,
     eliminarSeccion,
     generarDatosPruebaGlobal
@@ -429,6 +430,17 @@ function Admin() {
               }`}
             >
               <Grid className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Estado de las Sesiones
+            </button>
+
+            <button
+              onClick={() => setActiveTab('historial_choques')}
+              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
+                activeTab === 'historial_choques'
+                  ? 'bg-unet-blue text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <AlertCircle className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Historial de Choques
             </button>
           </div>
 
@@ -1104,6 +1116,81 @@ function Admin() {
                   </>
                 )
               })()}
+            </div>
+          )}
+
+          {/* VISTA: HISTORIAL DE CHOQUES DE HORARIO */}
+          {activeTab === 'historial_choques' && (
+            <div className="space-y-8 animate-fadeIn">
+              <div>
+                <h2 className="text-2xl font-bold text-unet-blue">Historial de Choques de Horario</h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  Registro de estudiantes rechazados por choque de horario: transferidos automáticamente a otra sección con cupo, o pendientes de reubicación.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-blue-50 text-unet-blue font-bold border-b border-gray-200">
+                      <tr>
+                        <th className="py-3.5 px-4">Fecha</th>
+                        <th className="py-3.5 px-4">Estudiante</th>
+                        <th className="py-3.5 px-4">Cédula</th>
+                        <th className="py-3.5 px-4">Materia</th>
+                        <th className="py-3.5 px-4 text-center">Sección Origen</th>
+                        <th className="py-3.5 px-4 text-center">Sección Destino</th>
+                        <th className="py-3.5 px-4 text-center">Resultado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {historialChoques.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-8 px-4 text-center text-gray-400 italic">
+                            Aún no se han registrado choques de horario.
+                          </td>
+                        </tr>
+                      ) : (
+                        historialChoques.map((h) => (
+                          <tr key={h.id} className="hover:bg-blue-50/40 transition-colors">
+                            <td className="py-3 px-4 text-gray-600 text-xs whitespace-nowrap">
+                              {h.created_at ? new Date(h.created_at).toLocaleString('es-VE') : '-'}
+                            </td>
+                            <td className="py-3 px-4 font-semibold text-gray-900">{h.nombre}</td>
+                            <td className="py-3 px-4 text-gray-700">{h.cedula}</td>
+                            <td className="py-3 px-4 text-gray-800">{h.materia}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+                                {h.seccion_origen}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {h.seccion_destino ? (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                  {h.seccion_destino}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {h.transferido ? (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-500 text-white shadow-sm">
+                                  Transferido
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-purple-600 text-white shadow-sm">
+                                  Pendiente de reubicación
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 

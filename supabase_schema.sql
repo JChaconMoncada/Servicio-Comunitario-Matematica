@@ -64,3 +64,19 @@ ON CONFLICT (clave) DO NOTHING;
 
 -- Omitiendo el RLS (Row Level Security) para pruebas rápidas
 -- En producción, se deben habilitar políticas RLS.
+
+-- Historial de estudiantes rechazados/transferidos por Choque de Horario.
+-- Cada vez que el admin resuelve un choque de horario (botón "Choque" en el
+-- panel), se registra aquí si el estudiante fue transferido automáticamente
+-- a otra sección con cupo, o si quedó pendiente de reubicación.
+CREATE TABLE IF NOT EXISTS historial_choques_horario (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  cedula TEXT NOT NULL,
+  nombre TEXT NOT NULL,
+  materia TEXT NOT NULL,
+  seccion_origen TEXT NOT NULL,
+  seccion_destino TEXT, -- NULL si no se pudo transferir (queda pendiente)
+  transferido BOOLEAN NOT NULL DEFAULT false,
+  periodo TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
