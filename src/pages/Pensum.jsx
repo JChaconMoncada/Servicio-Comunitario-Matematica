@@ -4,6 +4,70 @@ import { ArrowLeft, Lock, Unlock, BookOpen, GraduationCap, Info, Sparkles, X, La
 import Xarrow, { Xwrapper } from 'react-xarrows'
 import { pensumMaterias, electivasDisponibles, materiasNoInformatica, prelacionesPorUC, coloresSemestre, semestresLabels } from '../data/pensum'
 
+// Obtener prelaciones de una materia (nombres)
+const getPrelacionesNombres = (materia) => {
+  if (!materia.prelaciones || materia.prelaciones.length === 0) return []
+  return materia.prelaciones.map(preId => {
+    const pre = pensumMaterias.find(m => m.id === preId)
+    return pre ? pre.nombre : preId
+  })
+}
+
+// Color por semestre
+const getColor = (semestre) => coloresSemestre[semestre] || '#6b7280'
+
+// Tarjeta de materia. Se define FUERA de Pensum para que React conserve la
+// misma identidad de componente entre renders: si se definiera dentro de
+// Pensum, cada re-render (p. ej. al abrir el modal) crearía una función
+// nueva y forzaría el desmontaje/remontaje de todas las tarjetas, haciendo
+// que react-xarrows perdiera las referencias de los elementos y las
+// flechas desaparecieran.
+function MateriaCard({ materia, isSelected, onSelect }) {
+  const [isHovered, setIsHovered] = useState(false)
+  const color = getColor(materia.semestre)
+  const tieneReqUC = materia.ucRequeridas
+  const esElectiva = materia.esElectiva
+
+  return (
+    <div
+      id={`materia-${materia.id}`}
+      className="relative group cursor-pointer z-10"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onSelect(materia)}
+    >
+      <div
+        className={`rounded-lg border-2 transition-all duration-200 overflow-hidden ${
+          isSelected ? 'ring-2 ring-offset-2 ring-blue-500 scale-105 shadow-xl' :
+          isHovered ? 'shadow-lg scale-[1.02]' : 'shadow-sm hover:shadow-md'
+        }`}
+        style={{ borderColor: color }}
+      >
+        {/* Barra superior de color */}
+        <div
+          className="px-2 py-1 text-white text-[10px] font-bold flex items-center justify-between"
+          style={{ backgroundColor: color }}
+        >
+          <span>{materia.uc > 0 ? `${materia.uc} UC` : ''}</span>
+          {tieneReqUC && (
+            <span className="flex items-center gap-0.5">
+              <Lock className="w-2.5 h-2.5" />
+              {typeof tieneReqUC === 'string' ? tieneReqUC : `${tieneReqUC} UC`}
+            </span>
+          )}
+          {esElectiva && <Sparkles className="w-2.5 h-2.5" />}
+        </div>
+        {/* Cuerpo */}
+        <div className="px-2 py-1.5 bg-white min-h-[36px] flex items-center">
+          <p className="text-[11px] font-semibold text-gray-800 leading-tight">
+            {materia.nombre}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Pensum() {
   const [selectedMateria, setSelectedMateria] = useState(null)
 
@@ -15,67 +79,6 @@ function Pensum() {
 
   // Cantidad máxima de filas usadas en todo el pensum (para definir las filas del grid CSS)
   const MAX_FILA = Math.max(...pensumMaterias.map(m => m.fila))
-
-  // Obtener prelaciones de una materia (nombres)
-  const getPrelacionesNombres = (materia) => {
-    if (!materia.prelaciones || materia.prelaciones.length === 0) return []
-    return materia.prelaciones.map(preId => {
-      const pre = pensumMaterias.find(m => m.id === preId)
-      return pre ? pre.nombre : preId
-    })
-  }
-
-  // Color por semestre
-  const getColor = (semestre) => coloresSemestre[semestre] || '#6b7280'
-
-  // Renderizar tarjeta de materia
-  const MateriaCard = ({ materia }) => {
-    const [isHovered, setIsHovered] = useState(false)
-    const isSelected = selectedMateria?.id === materia.id
-    const color = getColor(materia.semestre)
-    const prelNombres = getPrelacionesNombres(materia)
-    const tieneReqUC = materia.ucRequeridas
-    const esElectiva = materia.esElectiva
-
-    return (
-      <div
-        id={`materia-${materia.id}`}
-        className="relative group cursor-pointer z-10"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={() => setSelectedMateria(materia)}
-      >
-        <div
-          className={`rounded-lg border-2 transition-all duration-200 overflow-hidden ${
-            isSelected ? 'ring-2 ring-offset-2 ring-blue-500 scale-105 shadow-xl' :
-            isHovered ? 'shadow-lg scale-[1.02]' : 'shadow-sm hover:shadow-md'
-          }`}
-          style={{ borderColor: color }}
-        >
-          {/* Barra superior de color */}
-          <div
-            className="px-2 py-1 text-white text-[10px] font-bold flex items-center justify-between"
-            style={{ backgroundColor: color }}
-          >
-            <span>{materia.uc > 0 ? `${materia.uc} UC` : ''}</span>
-            {tieneReqUC && (
-              <span className="flex items-center gap-0.5">
-                <Lock className="w-2.5 h-2.5" />
-                {typeof tieneReqUC === 'string' ? tieneReqUC : `${tieneReqUC} UC`}
-              </span>
-            )}
-            {esElectiva && <Sparkles className="w-2.5 h-2.5" />}
-          </div>
-          {/* Cuerpo */}
-          <div className="px-2 py-1.5 bg-white min-h-[36px] flex items-center">
-            <p className="text-[11px] font-semibold text-gray-800 leading-tight">
-              {materia.nombre}
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen py-8 md:py-12 bg-gradient-to-br from-gray-50 to-blue-50/30">
@@ -141,7 +144,7 @@ function Pensum() {
                       >
                         {materias.map((mat) => (
                           <div key={mat.id} style={{ gridRow: mat.fila, alignSelf: 'center' }}>
-                            <MateriaCard materia={mat} />
+                            <MateriaCard materia={mat} isSelected={selectedMateria?.id === mat.id} onSelect={setSelectedMateria} />
                           </div>
                         ))}
                       </div>
