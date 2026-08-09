@@ -35,7 +35,7 @@ export default function Carrusel({ slides, intervalo = 7000, mostrarFlechas = tr
 
   return (
     <div
-      className={`relative ${className}`}
+      className={`relative px-7 md:px-11 ${className}`}
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
     >
@@ -53,20 +53,20 @@ export default function Carrusel({ slides, intervalo = 7000, mostrarFlechas = tr
         </div>
       </div>
 
-      {/* Flechas laterales */}
+      {/* Flechas laterales (separadas del contenido) */}
       {mostrarFlechas && total > 1 && (
         <>
           <button
             onClick={anterior}
             aria-label="Anterior"
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 md:-translate-x-4 w-10 h-10 rounded-full bg-white text-unet-blue border-2 border-unet-blue/20 shadow-lg flex items-center justify-center hover:bg-unet-blue hover:text-white transition-all z-10"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white text-unet-blue border-2 border-unet-blue/20 shadow-lg flex items-center justify-center hover:bg-unet-blue hover:text-white transition-all z-10 hover:scale-105"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={siguiente}
             aria-label="Siguiente"
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 md:translate-x-4 w-10 h-10 rounded-full bg-unet-blue text-white shadow-lg flex items-center justify-center hover:bg-unet-lightBlue transition-all z-10"
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-unet-blue text-white shadow-lg flex items-center justify-center hover:bg-unet-lightBlue transition-all z-10 hover:scale-105"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
