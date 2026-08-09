@@ -78,14 +78,16 @@ function Admin() {
     materia: informaticaSubjects[0],
     seccion: '01',
     aula: '15C',
-    profesor: 'Desiree Suarez'
+    profesor: 'Desiree Suarez',
+    horario: 'Lun/Mié 08:00 - 10:00'
   })
 
   const [formSeccionVirtual, setFormSeccionVirtual] = useState({
     materia: informaticaSubjects[0],
     seccion: '10',
     aula: 'Aula Virtual 1',
-    profesor: 'Miguel Urbina'
+    profesor: 'Miguel Urbina',
+    horario: 'Mar/Jue 14:00 - 16:00'
   })
 
   const { 
@@ -925,6 +927,17 @@ function Admin() {
                       />
                     </div>
 
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Horario de Clases</label>
+                      <input
+                        type="text"
+                        value={formSeccionPresencial.horario}
+                        onChange={(e) => setFormSeccionPresencial({ ...formSeccionPresencial, horario: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium"
+                        placeholder="Ej. Lun/Mié 08:00 - 10:00"
+                      />
+                    </div>
+
                     <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition-all">
                       Crear Sección Presencial
                     </button>
@@ -990,6 +1003,17 @@ function Admin() {
                         onChange={(e) => setFormSeccionVirtual({ ...formSeccionVirtual, profesor: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium"
                         placeholder="Nombre del profesor"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Horario de Clases</label>
+                      <input
+                        type="text"
+                        value={formSeccionVirtual.horario}
+                        onChange={(e) => setFormSeccionVirtual({ ...formSeccionVirtual, horario: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium"
+                        placeholder="Ej. Mar/Jue 14:00 - 16:00"
                       />
                     </div>
 
@@ -1103,8 +1127,11 @@ function Admin() {
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-xs text-white/90 font-medium mt-1">
-                                  Seccion:{sec.seccion} | {sec.aula} | Prof: {sec.profesor}
+                                <div className="text-xs text-white/90 font-medium mt-1 space-y-0.5">
+                                  <div>Sección:{sec.seccion} | {sec.aula} | Prof: {sec.profesor}</div>
+                                  <div className="text-[11px] text-blue-100 font-semibold">
+                                    🕒 Horario: {sec.horario || 'Por definir'}
+                                  </div>
                                 </div>
                               </div>
                               <ChevronRight className="w-5 h-5 text-white/80 group-hover:translate-x-1 transition-transform flex-shrink-0" />
@@ -1258,6 +1285,7 @@ function Admin() {
                         <th className="py-3.5 px-4">Estudiante</th>
                         <th className="py-3.5 px-4">Cédula</th>
                         <th className="py-3.5 px-4">Materia</th>
+                        <th className="py-3.5 px-4">Horario</th>
                         <th className="py-3.5 px-4 text-center">Sección Origen</th>
                         <th className="py-3.5 px-4 text-center">Sección Destino</th>
                         <th className="py-3.5 px-4 text-center">Resultado</th>
@@ -1266,7 +1294,7 @@ function Admin() {
                     <tbody className="divide-y divide-gray-200">
                       {historialChoques.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-8 px-4 text-center text-gray-400 italic">
+                          <td colSpan={8} className="py-8 px-4 text-center text-gray-400 italic">
                             Aún no se han registrado choques de horario.
                           </td>
                         </tr>
@@ -1279,6 +1307,7 @@ function Admin() {
                             <td className="py-3 px-4 font-semibold text-gray-900">{h.nombre}</td>
                             <td className="py-3 px-4 text-gray-700">{h.cedula}</td>
                             <td className="py-3 px-4 text-gray-800">{h.materia}</td>
+                            <td className="py-3 px-4 text-gray-700 text-xs font-semibold">{h.horario || 'Por definir'}</td>
                             <td className="py-3 px-4 text-center">
                               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
                                 {h.seccion_origen}

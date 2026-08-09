@@ -184,6 +184,8 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           <span className="mx-2">•</span>
           <span>Aula: {seccion.aula}</span>
           <span className="mx-2">•</span>
+          <span>Horario: {seccion.horario || 'Por definir'}</span>
+          <span className="mx-2">•</span>
           <span>Profesor: {seccion.profesor}</span>
         </div>
       </div>
@@ -209,6 +211,8 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
               <span><strong>Sección:</strong> {seccion.seccion}</span>
               <span>•</span>
               <span><strong>Aula / Lab:</strong> {seccion.aula}</span>
+              <span>•</span>
+              <span><strong>Horario:</strong> {seccion.horario || 'Por definir'}</span>
               <span>•</span>
               <span><strong>Profesor:</strong> {seccion.profesor}</span>
             </div>

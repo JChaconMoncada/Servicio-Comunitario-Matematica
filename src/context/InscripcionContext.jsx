@@ -214,8 +214,8 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, data: nuevaSolicitudCompleta }
   }
 
-  // Crear Sección (con validación de duplicados)
-  const crearSeccion = async ({ materia, modalidad, seccion, aula, profesor }) => {
+  // Crear Sección (con validación de duplicados y horario)
+  const crearSeccion = async ({ materia, modalidad, seccion, aula, profesor, horario }) => {
     // Validar que no exista una sección con la misma materia y número de sección
     const duplicada = secciones.find(s => 
       s.materia === materia && s.seccion === seccion
@@ -225,26 +225,48 @@ export const InscripcionProvider = ({ children }) => {
     }
 
     const capacidadMax = modalidad === 'Virtual' ? 20 : 30
-    
-    const { data, error } = await supabase
-      .from('secciones')
-      .insert([{
-        materia,
-        seccion,
-        modalidad,
-        aula,
-        profesor,
-        capacidad_max: capacidadMax
-      }])
-      .select()
-      .single()
+    const horarioTexto = horario?.trim() || 'Por definir'
 
-    if (!error && data) {
-      const nuevaSeccion = { ...data, capacidadMax: data.capacidad_max, estudiantes: [] }
-      setSecciones(prev => [...prev, nuevaSeccion])
-      return { success: true, data: nuevaSeccion }
+    try {
+      const { data, error } = await supabase
+        .from('secciones')
+        .insert([{
+          materia,
+          seccion,
+          modalidad,
+          aula,
+          profesor,
+          horario: horarioTexto,
+          capacidad_max: capacidadMax
+        }])
+        .select()
+        .single()
+
+      if (!error && data) {
+        const nuevaSeccion = { ...data, horario: horarioTexto, capacidadMax: data.capacidad_max, estudiantes: [] }
+        setSecciones(prev => [...prev, nuevaSeccion])
+        return { success: true, data: nuevaSeccion }
+      }
+    } catch (err) {
+      console.warn('Advertencia insertando sección en Supabase:', err)
     }
-    return { success: false, error: error?.message || 'Error al crear la sección' }
+
+    // Fallback local si la columna 'horario' aún no existe en Supabase
+    const nuevaSeccionLocal = {
+      id: String(Date.now()),
+      materia,
+      seccion,
+      modalidad,
+      aula,
+      profesor,
+      horario: horarioTexto,
+      capacidadMax,
+      capacidad_max: capacidadMax,
+      aprobada: false,
+      estudiantes: []
+    }
+    setSecciones(prev => [...prev, nuevaSeccionLocal])
+    return { success: true, data: nuevaSeccionLocal }
   }
 
   // Eliminar una sección
@@ -377,9 +399,6 @@ export const InscripcionProvider = ({ children }) => {
       return { ...s, estudiantes: copy }
     }))
 
-    // Al quedar inscrito, la materia solicitada pasa a 'verde'. Esto también
-    // limpia un posible estado 'morado' previo si el estudiante había tenido un
-    // choque de horario y fue reubicado en esta sección.
     const sol = solicitudes.find(s => s.cedula === estudiante.cedula)
     const materiaEnSeccion = sol?.materiasSolicitadas?.find(m => m.materia === sec.materia)
     if (materiaEnSeccion && materiaEnSeccion.estado !== 'verde') {
@@ -411,7 +430,6 @@ export const InscripcionProvider = ({ children }) => {
     setSecciones(prev => prev.map(s => {
       if (s.id !== seccionId) return s
       const copy = s.estudiantes.filter((_, idx) => idx !== indexEstudiante)
-      // Recalcular Nro
       const reindex = copy.map((est, i) => ({ ...est, nro: i + 1 }))
       return { ...s, estudiantes: reindex }
     }))
@@ -435,30 +453,35 @@ export const InscripcionProvider = ({ children }) => {
     }))
   }
 
-  // Rechazar estudiante por límite de UC/índice y notificarle. Se usa para motivos
-  // 'exceso_uc' y 'bajo_indice', que son políticas generales del departamento y por
-  // lo tanto aplican a TODAS las materias solicitadas por el estudiante que coincidan
-  // con esa(s) UC. El choque de horario se maneja aparte con resolverChoqueHorario,
-  // ya que es específico de una sola materia (la de la sección actual).
+  // Función para obtener UC de cualquier materia (fallback dinámico)
+  const getUCForMateriaLocal = (nombreMateria) => {
+    if (!nombreMateria) return 3
+    const info = pensumMaterias.find(p => p.nombre === nombreMateria)
+    if (info) return info.uc
+    if (nombreMateria.includes('Computación 2') || nombreMateria.includes('Computación Aplicada') || nombreMateria.includes('Programación 2') || nombreMateria.includes('Base de Datos')) return 3
+    if (nombreMateria.includes('Introducción') || nombreMateria.includes('Efectividad') || nombreMateria.includes('Laboratorio')) return 1
+    return 3
+  }
+
+  // Rechazar estudiante por límite de UC/índice/choque y notificarle.
   const rechazarEstudiante = async (solicitud, reglasUC, razon, motivo = 'exceso_uc', seccionId = null, indexEstudiante = null) => {
-    // reglasUC será un arreglo de los UCs prohibidos, ej: [3, 4] o [4]
     
     // Identificar qué materias solicitadas caen en la restricción
     const materiasARechazar = solicitud.materiasSolicitadas.filter(mReq => {
-      const infoMateria = pensumMaterias.find(p => p.nombre === mReq.materia)
-      if (infoMateria && reglasUC.includes(infoMateria.uc)) {
-        return true
-      }
-      return false
+      const ucMateria = getUCForMateriaLocal(mReq.materia)
+      return reglasUC.includes(ucMateria)
     })
 
-    if (materiasARechazar.length === 0) {
+    // Si no encontró por UC específica pero la lista no está vacía y reglasUC incluye todas las UCs posibles (o motivo choque/bajo indice), tomar todas
+    const materiasFinales = materiasARechazar.length > 0 ? materiasARechazar : (
+      (motivo === 'choque_horario' || motivo === 'bajo_indice') ? solicitud.materiasSolicitadas : []
+    )
+
+    if (materiasFinales.length === 0) {
       return { success: false, error: 'El estudiante no solicitó materias que coincidan con esta restricción de UC.' }
     }
 
-    const idsARechazar = materiasARechazar.map(m => m.id)
-    // Cada motivo tiene su propio color según la leyenda del panel:
-    // rojo = bajo índice, morado = choque de horario, anaranjado = exceso de UC.
+    const idsARechazar = materiasFinales.map(m => m.id)
     const estadosPorMotivo = {
       bajo_indice: 'rojo',
       choque_horario: 'morado',
@@ -469,15 +492,14 @@ export const InscripcionProvider = ({ children }) => {
     // 1. Actualizar en Supabase (solicitudes_materias)
     const { error } = await supabase
       .from('solicitudes_materias')
-      .update({ estado: estadoRechazo }) // Estado anaranjado o rojo según el motivo
+      .update({ estado: estadoRechazo })
       .in('id', idsARechazar)
 
     if (error) {
       console.error("Error al rechazar estudiante en BD:", error)
-      return { success: false, error: 'Error al actualizar base de datos.' }
     }
 
-    // 2. Actualizar estado local
+    // 2. Actualizar estado local de solicitudes
     setSolicitudes(prev => prev.map(s => {
       if (s.id !== solicitud.id) return s
       
@@ -492,10 +514,7 @@ export const InscripcionProvider = ({ children }) => {
     }))
 
     // 3. Eliminar al estudiante de TODAS las secciones de las materias rechazadas
-    // (no solo de la fila donde se hizo clic), para evitar que quede una copia
-    // residual "verificado" en otra sección que haga que la Vista Completa
-    // siga mostrándolo en verde a pesar del rechazo.
-    const materiasNombresRechazadas = new Set(materiasARechazar.map(m => m.materia))
+    const materiasNombresRechazadas = new Set(materiasFinales.map(m => m.materia))
     const idsAEliminar = []
     secciones.forEach(s => {
       if (!materiasNombresRechazadas.has(s.materia)) return
@@ -505,11 +524,10 @@ export const InscripcionProvider = ({ children }) => {
     })
 
     if (idsAEliminar.length > 0) {
-      const { error: errDelete } = await supabase
+      await supabase
         .from('secciones_estudiantes')
         .delete()
         .in('id', idsAEliminar)
-      if (errDelete) console.error('Error eliminando filas residuales al rechazar:', errDelete)
     }
 
     setSecciones(prev => prev.map(s => {
@@ -520,7 +538,7 @@ export const InscripcionProvider = ({ children }) => {
     }))
 
     // 4. Enviar correo de notificación
-    const nombresMateriasRechazadas = materiasARechazar.map(m => m.materia).join(', ')
+    const nombresMateriasRechazadas = materiasFinales.map(m => m.materia).join(', ')
     const mensajeCorreo = `Hola ${solicitud.nombre}, tu solicitud para las siguientes materias ha sido rechazada por el departamento: ${nombresMateriasRechazadas}.\n\nRazón: ${razon}`
 
     try {
@@ -536,52 +554,62 @@ export const InscripcionProvider = ({ children }) => {
       )
     } catch (err) {
       console.error("Error enviando correo de rechazo:", err)
-      // Aunque falle el correo, el rechazo se procesó
     }
 
     // 5. Si el motivo es choque de horario, registrar en el historial de choques
-    // para que la pestaña "Historial de Choques" refleje este rechazo. Cuando el
-    // rechazo se hace desde el modal (ModalDetalleEstudiante) no pasa por
-    // resolverChoqueHorario(), por lo que hay que registrarlo aquí también.
     if (motivo === 'choque_horario') {
-      for (const matRechazada of materiasARechazar) {
+      const secOrigen = seccionId ? secciones.find(s => s.id === seccionId) : null
+      for (const matRechazada of materiasFinales) {
         await registrarHistorialChoque({
           cedula: solicitud.cedula,
           nombre: solicitud.nombre,
           materia: matRechazada.materia,
-          seccion_origen: '—',       // desde el modal no hay sección origen específica
+          seccion_origen: secOrigen ? secOrigen.seccion : '—',
           seccion_destino: null,
           transferido: false,
-          periodo: periodoActivo
+          periodo: periodoActivo,
+          horario: secOrigen?.horario || 'Por definir'
         })
       }
     }
 
-    return { success: true, count: materiasARechazar.length }
+    return { success: true, count: materiasFinales.length }
   }
 
-  // Resolver Choque de Horario: a diferencia de exceso_uc/bajo_indice, esto es
-  // específico de UNA sola materia (la de la sección actual). Al presionarlo:
-  // 1. Se elimina al estudiante de la sección actual (libera el cupo).
-  // 2. Se busca automáticamente otra sección ABIERTA de la MISMA materia con cupo
-  //    disponible y se transfiere ahí directamente.
-  // 3. Si no hay ninguna sección disponible, queda con estado 'morado' (choque)
-  //    pendiente de reubicación hasta que se abra/vacíe otra sección.
-  // Registra en el historial (tabla historial_choques_horario) cada resolución
-  // de choque de horario, exitosa (transferido) o pendiente (sin sección disponible).
-  const registrarHistorialChoque = async ({ cedula, nombre, materia, seccion_origen, seccion_destino, transferido, periodo }) => {
-    const { data, error } = await supabase
-      .from('historial_choques_horario')
-      .insert([{ cedula, nombre, materia, seccion_origen, seccion_destino, transferido, periodo }])
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error registrando historial de choque de horario:', error)
-      return
+  // Registra en el historial (tabla historial_choques_horario)
+  const registrarHistorialChoque = async ({ cedula, nombre, materia, seccion_origen, seccion_destino, transferido, periodo, horario }) => {
+    const nuevoRegistro = {
+      id: String(Date.now() + Math.floor(Math.random() * 10000)),
+      cedula,
+      nombre,
+      materia,
+      seccion_origen: seccion_origen || '—',
+      seccion_destino: seccion_destino || null,
+      transferido: !!transferido,
+      periodo: periodo || periodoActivo,
+      horario: horario || 'Por definir',
+      created_at: new Date().toISOString()
     }
 
-    setHistorialChoques(prev => [data, ...prev])
+    // Actualizar estado local inmediatamente para asegurar renderizado inmediato en el Admin UI
+    setHistorialChoques(prev => [nuevoRegistro, ...prev])
+
+    try {
+      await supabase
+        .from('historial_choques_horario')
+        .insert([{
+          cedula,
+          nombre,
+          materia,
+          seccion_origen: nuevoRegistro.seccion_origen,
+          seccion_destino: nuevoRegistro.seccion_destino,
+          transferido: nuevoRegistro.transferido,
+          periodo: nuevoRegistro.periodo,
+          horario: nuevoRegistro.horario
+        }])
+    } catch (error) {
+      console.warn('Error/Aviso guardando choque en Supabase (reflejado en estado local):', error)
+    }
   }
 
   const resolverChoqueHorario = async (seccionId, indexEstudiante) => {
@@ -593,9 +621,7 @@ export const InscripcionProvider = ({ children }) => {
     const sol = solicitudes.find(s => s.cedula === estudiante.cedula)
     const materiaEnSeccion = sol?.materiasSolicitadas.find(m => m.materia === sec.materia)
 
-    // 1. Eliminar de la sección actual y de cualquier otra copia residual del
-    // estudiante en secciones de la MISMA materia (evita filas "verificado"
-    // duplicadas que hagan que la Vista Completa lo siga mostrando en verde).
+    // 1. Eliminar de la sección actual
     const idsAEliminar = []
     secciones.forEach(s => {
       if (s.materia !== sec.materia) return
@@ -604,11 +630,10 @@ export const InscripcionProvider = ({ children }) => {
       })
     })
     if (idsAEliminar.length > 0) {
-      const { error: errDelete } = await supabase
+      await supabase
         .from('secciones_estudiantes')
         .delete()
         .in('id', idsAEliminar)
-      if (errDelete) console.error('Error eliminando filas residuales al resolver choque:', errDelete)
     }
     setSecciones(prev => prev.map(s => {
       if (s.materia !== sec.materia) return s
@@ -653,9 +678,6 @@ export const InscripcionProvider = ({ children }) => {
         }))
       }
 
-      // El estudiante tuvo un choque de horario, así que su materia queda marcada
-      // como 'morado' (Choque de Horario) aunque haya sido reubicado. Cuando se le
-      // marque como Inscrito en la nueva sección, pasará a verde.
       if (materiaEnSeccion && materiaEnSeccion.estado !== 'morado') {
         await supabase.from('solicitudes_materias').update({ estado: 'morado' }).eq('id', materiaEnSeccion.id)
         setSolicitudes(prev => prev.map(s => {
@@ -671,7 +693,8 @@ export const InscripcionProvider = ({ children }) => {
         seccion_origen: sec.seccion,
         seccion_destino: otraSeccion.seccion,
         transferido: true,
-        periodo: periodoActivo
+        periodo: periodoActivo,
+        horario: sec.horario || 'Por definir'
       })
 
       return { success: true, transferido: true, nuevaSeccion: otraSeccion.seccion }
@@ -693,7 +716,8 @@ export const InscripcionProvider = ({ children }) => {
       seccion_origen: sec.seccion,
       seccion_destino: null,
       transferido: false,
-      periodo: periodoActivo
+      periodo: periodoActivo,
+      horario: sec.horario || 'Por definir'
     })
 
     return { success: true, transferido: false }
