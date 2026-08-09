@@ -14,13 +14,19 @@ function Inscripcion() {
   
   // Campo de cuántas materias va a solicitar (Página 1 del documento)
   const [cantidadMaterias, setCantidadMaterias] = useState(1)
-  const [materiasSeleccionadas, setMateriasSeleccionadas] = useState([''])
+  // Preselección por URL si se navega con ?materia=...
+  const [materiasSeleccionadas, setMateriasSeleccionadas] = useState(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const matParam = searchParams.get('materia')
+    return matParam ? [matParam] : ['']
+  })
   
   const [errors, setErrors] = useState({})
   const [submitted, setSubmitted] = useState(false)
   
-  const { inscripcionHabilitada, getMateriasHabilitadas, agregarSolicitud } = useInscripcion()
-  const materiasDisponibles = getMateriasHabilitadas()
+  const { inscripcionHabilitada, materiasHabilitadas, agregarSolicitud } = useInscripcion()
+  // Permitir seleccionar cualquier materia de informaticaSubjects (incluso si estuviese deshabilitada)
+  const materiasDisponibles = informaticaSubjects
 
   const validateEmail = (email) => {
     return email.endsWith('@unet.edu.ve')
@@ -48,17 +54,14 @@ function Inscripcion() {
     })
   }
 
-  // Materias que dependen de la indicada, es decir, aquellas que la tienen como
-  // prelación directa o indirecta (el sentido inverso de getPrelacionesNombres).
+  // Materias que dependen de la indicada
   const getDependientesNombres = (materiaNombre) => {
     return pensumMaterias
       .filter(p => getPrelacionesNombres(p.nombre).includes(materiaNombre))
       .map(p => p.nombre)
   }
 
-  // Toda materia que esté en la misma cadena de prelación que la indicada, en
-  // ambos sentidos: sus prelaciones (hacia atrás) y las materias que la prelan
-  // (hacia adelante). Se usa para ocultar esas opciones en los desplegables.
+  // Toda materia que esté en la misma cadena de prelación
   const getMateriasEnCadena = (materiaNombre) => {
     if (!materiaNombre) return []
     return [...new Set([
@@ -67,8 +70,7 @@ function Inscripcion() {
     ])]
   }
 
-  // Opciones disponibles para un desplegable concreto: se excluyen las materias
-  // ya elegidas en otros campos y todas las que estén en su cadena de prelación.
+  // Opciones disponibles para un desplegable concreto
   const getOpcionesParaCampo = (index) => {
     const otras = materiasSeleccionadas.filter((m, i) => i !== index && m && m.trim() !== '')
     const bloqueadas = new Set()
@@ -76,7 +78,6 @@ function Inscripcion() {
       bloqueadas.add(m)
       getMateriasEnCadena(m).forEach(nombre => bloqueadas.add(nombre))
     })
-    // La materia ya elegida en este campo siempre debe seguir visible.
     return materiasDisponibles.filter(m => m === materiasSeleccionadas[index] || !bloqueadas.has(m))
   }
 

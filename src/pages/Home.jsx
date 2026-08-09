@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { BookOpen, FileText, Clock, Shield, Phone, Mail, MapPin, ArrowRight } from 'lucide-react'
+import { BookOpen, FileText, Clock, Shield, Phone, Mail, MapPin, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react'
 import { informaticaSubjects } from '../data/subjects'
+import { useInscripcion } from '../context/InscripcionContext'
 import Carrusel from '../components/Carrusel'
 
 const pasosInscripcion = [
@@ -43,7 +44,7 @@ const infoDepartamento = [
   }
 ]
 
-// Divide un arreglo en grupos del tamaño indicado (para paginar el carrusel)
+// Divide un arreglo en grupos del tamaño indicado
 const agrupar = (items, tamano) => {
   const grupos = []
   for (let i = 0; i < items.length; i += tamano) {
@@ -53,75 +54,171 @@ const agrupar = (items, tamano) => {
 }
 
 function Home() {
-  const gruposMaterias = agrupar(informaticaSubjects, 9)
+  const { secciones } = useInscripcion()
+
+  // Cuadrícula 4x4 = 16 materias por diapositiva del carrusel
+  const gruposMaterias = agrupar(informaticaSubjects, 16)
   const gruposInfo = agrupar(infoDepartamento, 3)
 
+  // Calcular qué materias tienen actualmente secciones abiertas con cupo disponible
+  const materiasConCupoMap = {}
+  secciones.forEach(sec => {
+    if (sec.aprobada) return
+    const capacidad = sec.capacidadMax || sec.capacidad_max || 0
+    const ocupados = sec.estudiantes ? sec.estudiantes.length : 0
+    const libres = capacidad - ocupados
+    if (libres > 0) {
+      if (!materiasConCupoMap[sec.materia]) {
+        materiasConCupoMap[sec.materia] = { materia: sec.materia, cuposLibres: 0, seccionesAbiertas: 0 }
+      }
+      materiasConCupoMap[sec.materia].cuposLibres += libres
+      materiasConCupoMap[sec.materia].seccionesAbiertas += 1
+    }
+  })
+
+  let listaMateriasConCupo = Object.values(materiasConCupoMap)
+
+  // Si aún no se han registrado secciones con cupo en la BD, mostrar asignaturas de ejemplo
+  if (listaMateriasConCupo.length === 0) {
+    const materiasEjemplo = ['Computación 1', 'Computación 2', 'Programación 1', 'Estructura de Datos', 'Base de Datos 1', 'Sistemas Operativos']
+    listaMateriasConCupo = materiasEjemplo.map(m => ({
+      materia: m,
+      cuposLibres: 5,
+      seccionesAbiertas: 1
+    }))
+  }
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen space-y-0">
 
-      {/* ===== BLOQUE PRINCIPAL: Inscripción + Materias del Departamento ===== */}
-      <section className="bg-white">
-        <div className="container mx-auto px-4 py-10 md:py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+      {/* ===== BLOQUE PRINCIPAL: Inscripción + Materias del Departamento (Mismo tamaño / altura) ===== */}
+      <section className="bg-white py-10 md:py-14">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 items-stretch max-w-7xl mx-auto">
 
-            {/* Columna izquierda: cómo realizar tu inscripción */}
-            <div className="lg:sticky lg:top-8">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-unet-blue mb-3">
-                Cómo realizar tu inscripción
-              </h2>
-              <p className="text-gray-600 text-base md:text-lg mb-8">
-                Inscripciones tardías del Departamento de Informática. Sigue estos pasos para
-                solicitar tu cupo en las asignaturas disponibles.
-              </p>
+            {/* Columna izquierda: Cómo realizar tu inscripción */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-unet-blue mb-3">
+                  Cómo realizar tu inscripción
+                </h2>
+                <p className="text-gray-600 text-sm md:text-base mb-6">
+                  Inscripciones tardías del Departamento de Informática. Sigue estos pasos para
+                  solicitar tu cupo en las asignaturas disponibles.
+                </p>
 
-              <ol className="space-y-4 mb-8">
-                {pasosInscripcion.map((paso, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <span className="bg-unet-blue text-white rounded-full w-9 h-9 flex items-center justify-center mr-4 flex-shrink-0 font-bold">
-                      {idx + 1}
-                    </span>
-                    <p className="text-gray-700 text-base md:text-lg pt-1">{paso}</p>
-                  </li>
-                ))}
-              </ol>
+                <ol className="space-y-3 mb-8">
+                  {pasosInscripcion.map((paso, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <span className="bg-unet-blue text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 font-bold text-sm">
+                        {idx + 1}
+                      </span>
+                      <p className="text-gray-700 text-sm md:text-base pt-1 font-medium">{paso}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
                 <Link
                   to="/inscripcion"
-                  className="btn-primary inline-flex items-center justify-center text-base font-bold px-6 py-3"
+                  className="btn-primary flex-1 inline-flex items-center justify-center text-sm md:text-base font-bold px-5 py-3 shadow"
                 >
-                  Comenzar Inscripción <ArrowRight className="w-5 h-5 ml-2" />
+                  Comenzar Inscripción <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
                 <Link
                   to="/pensum"
-                  className="btn-secondary inline-flex items-center justify-center text-base font-bold px-6 py-3"
+                  className="btn-secondary flex-1 inline-flex items-center justify-center text-sm md:text-base font-bold px-5 py-3 border-gray-300"
                 >
                   Ver Pensum
                 </Link>
               </div>
             </div>
 
-            {/* Columna derecha: carrusel de materias del departamento */}
-            <div className="bg-unet-gray rounded-2xl p-5 md:p-8">
-              <h2 className="text-xl md:text-2xl font-bold text-center text-unet-blue mb-6">
-                Materias del Departamento
-              </h2>
+            {/* Columna derecha: Materias del Departamento (Cuadrícula 4x4 sin fondo gris) */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-center text-unet-blue mb-6">
+                  Materias del Departamento
+                </h2>
 
-              <Carrusel intervalo={7000} slides={gruposMaterias.map((grupo, gIdx) => (
-                <div key={gIdx} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {grupo.map((materia, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex items-center min-h-[64px] hover:shadow-md hover:border-unet-blue/40 transition-all"
-                    >
-                      <BookOpen className="w-5 h-5 text-unet-blue mr-2.5 flex-shrink-0" />
-                      <span className="text-gray-700 text-sm font-medium leading-snug">{materia}</span>
-                    </div>
-                  ))}
-                </div>
-              ))} />
+                <Carrusel intervalo={7000} slides={gruposMaterias.map((grupo, gIdx) => (
+                  <div key={gIdx} className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 md:gap-3">
+                    {grupo.map((materia, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-gray-50/80 rounded-xl border border-gray-200/80 p-2.5 flex items-center min-h-[58px] hover:bg-blue-50/50 hover:border-unet-blue/40 transition-all group"
+                      >
+                        <BookOpen className="w-4 h-4 text-unet-blue mr-2 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                        <span className="text-gray-800 text-xs font-semibold leading-tight line-clamp-2">{materia}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))} />
+              </div>
+
+              <div className="text-center pt-4 border-t border-gray-100 mt-4">
+                <p className="text-xs text-gray-500 font-medium">
+                  Desliza para ver la oferta de asignaturas del Departamento de Informática (4x4)
+                </p>
+              </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* ===== NUEVO APARTADO: Materias con Cupo Disponible ===== */}
+      <section className="bg-gradient-to-b from-gray-50 via-blue-50/30 to-white py-12 md:py-16 border-t border-b border-gray-200/80">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-xs inline-flex items-center mb-3">
+              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Oferta Académica Activa
+            </span>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-unet-blue mb-3">
+              Materias con Cupo Disponible
+            </h2>
+            <p className="text-gray-600 text-sm md:text-base">
+              Asignaturas del semestre que actualmente cuentan con cupos abiertos y secciones disponibles para inscripción tardía.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {listaMateriasConCupo.map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-2xl border-2 border-emerald-400/80 shadow-md hover:shadow-xl hover:border-emerald-500 transition-all p-6 flex flex-col justify-between group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="inline-flex items-center text-xs font-bold bg-emerald-500 text-white px-3 py-1 rounded-full shadow-xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Cupos Abiertos
+                    </span>
+                    <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      {item.cuposLibres} cupo(s)
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-extrabold text-unet-blue mb-2 group-hover:text-emerald-700 transition-colors">
+                    {item.materia}
+                  </h3>
+
+                  <p className="text-gray-500 text-xs font-medium mb-6">
+                    {item.seccionesAbiertas > 1 ? `${item.seccionesAbiertas} secciones con disponibilidad` : 'Sección disponible para solicitud'}
+                  </p>
+                </div>
+
+                <Link
+                  to={`/inscripcion?materia=${encodeURIComponent(item.materia)}`}
+                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-center text-sm shadow-sm transition-all flex items-center justify-center space-x-2"
+                >
+                  <span>Solicitar Cupo</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
       </section>
