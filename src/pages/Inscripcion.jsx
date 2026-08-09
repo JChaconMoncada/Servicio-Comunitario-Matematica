@@ -205,7 +205,7 @@ function Inscripcion() {
                   </ul>
                 </div>
               </div>
-              <Link to="/informatica" className="btn-primary inline-block">
+              <Link to="/" className="btn-primary inline-block">
                 Volver al Departamento de Informática
               </Link>
             </div>
@@ -374,7 +374,7 @@ function Inscripcion() {
                   Enviar Solicitud
                 </button>
                 <Link
-                  to="/informatica"
+                  to="/"
                   className="btn-secondary flex-1 py-3 text-base font-bold text-center border-gray-300 hover:bg-gray-100"
                 >
                   Cancelar
@@ -385,7 +385,7 @@ function Inscripcion() {
           </div>
 
           <div className="mt-8 text-center">
-            <Link to="/informatica" className="text-unet-blue font-semibold hover:underline flex items-center justify-center">
+            <Link to="/" className="text-unet-blue font-semibold hover:underline flex items-center justify-center">
               ← Volver al Departamento de Informática
             </Link>
           </div>

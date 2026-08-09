@@ -1,8 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { InscripcionProvider } from './context/InscripcionContext'
 import Header from './components/Header'
 import Home from './pages/Home'
-import Informatica from './pages/Informatica'
 import Inscripcion from './pages/Inscripcion'
 import Pensum from './pages/Pensum'
 import Admin from './pages/Admin'
@@ -17,7 +16,9 @@ function App() {
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/informatica" element={<Informatica />} />
+              {/* El inicio ya es la vista del Departamento de Informática, así que
+                  la ruta antigua redirige para no romper enlaces existentes. */}
+              <Route path="/informatica" element={<Navigate to="/" replace />} />
               <Route path="/inscripcion" element={<Inscripcion />} />
               <Route path="/pensum" element={<Pensum />} />
               <Route path="/admin" element={<Admin />} />

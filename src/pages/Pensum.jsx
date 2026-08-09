@@ -87,7 +87,7 @@ function Pensum() {
           
           {/* Header */}
           <div className="mb-6">
-            <Link to="/informatica" className="flex items-center text-unet-blue hover:underline mb-4 text-sm font-semibold">
+            <Link to="/" className="flex items-center text-unet-blue hover:underline mb-4 text-sm font-semibold">
               <ArrowLeft className="w-4 h-4 mr-2" /> Volver al Departamento
             </Link>
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
