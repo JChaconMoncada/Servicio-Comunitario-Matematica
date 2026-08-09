@@ -91,13 +91,13 @@ function Home() {
   return (
     <div className="min-h-screen space-y-0">
 
-      {/* ===== BLOQUE PRINCIPAL: Inscripción + Materias del Departamento (Mismo tamaño / altura) ===== */}
-      <section className="bg-white py-10 md:py-14">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 items-stretch max-w-7xl mx-auto">
+      {/* ===== BLOQUE PRINCIPAL: Inscripción + Materias del Departamento ===== */}
+      <section className="bg-white py-8 md:py-12">
+        <div className="container mx-auto px-4 sm:px-6 max-w-[1400px]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
 
-            {/* Columna izquierda: Cómo realizar tu inscripción */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
+            {/* Columna izquierda: Cómo realizar tu inscripción (5/12 de ancho) */}
+            <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
               <div>
                 <h2 className="text-2xl md:text-3xl font-extrabold text-unet-blue mb-3">
                   Cómo realizar tu inscripción
@@ -135,8 +135,8 @@ function Home() {
               </div>
             </div>
 
-            {/* Columna derecha: Materias del Departamento (Cuadrícula 4x4) */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
+            {/* Columna derecha: Materias del Departamento (7/12 de ancho para recuadros anchos) */}
+            <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
               <div>
                 <h2 className="text-2xl md:text-3xl font-extrabold text-center text-unet-blue mb-6">
                   Materias del Departamento
@@ -147,10 +147,10 @@ function Home() {
                     {grupo.map((materia, idx) => (
                       <div
                         key={idx}
-                        className="bg-gray-50/90 rounded-xl border border-gray-200 p-3 sm:p-3.5 flex items-center min-h-[72px] sm:min-h-[76px] hover:bg-blue-50/60 hover:border-unet-blue/50 hover:shadow-md transition-all group cursor-default"
+                        className="bg-gray-50/90 rounded-xl border border-gray-200 px-3.5 py-2.5 flex items-center min-h-[50px] sm:min-h-[54px] hover:bg-blue-50/60 hover:border-unet-blue/50 hover:shadow-md transition-all group cursor-default"
                       >
                         <BookOpen className="w-4 h-4 text-unet-blue mr-2.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                        <span className="text-gray-800 text-xs sm:text-sm font-semibold leading-snug break-words">{materia}</span>
+                        <span className="text-gray-800 text-xs sm:text-sm font-semibold leading-tight line-clamp-2">{materia}</span>
                       </div>
                     ))}
                   </div>
