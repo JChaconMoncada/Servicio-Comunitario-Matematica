@@ -135,7 +135,7 @@ function Home() {
               </div>
             </div>
 
-            {/* Columna derecha: Materias del Departamento (Cuadrícula 4x4 sin fondo gris) */}
+            {/* Columna derecha: Materias del Departamento (Cuadrícula 4x4) */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
               <div>
                 <h2 className="text-2xl md:text-3xl font-extrabold text-center text-unet-blue mb-6">
@@ -143,24 +143,18 @@ function Home() {
                 </h2>
 
                 <Carrusel intervalo={7000} slides={gruposMaterias.map((grupo, gIdx) => (
-                  <div key={gIdx} className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 md:gap-3">
+                  <div key={gIdx} className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-3.5">
                     {grupo.map((materia, idx) => (
                       <div
                         key={idx}
-                        className="bg-gray-50/80 rounded-xl border border-gray-200/80 p-2.5 flex items-center min-h-[58px] hover:bg-blue-50/50 hover:border-unet-blue/40 transition-all group"
+                        className="bg-gray-50/90 rounded-xl border border-gray-200 p-3 sm:p-3.5 flex items-center min-h-[72px] sm:min-h-[76px] hover:bg-blue-50/60 hover:border-unet-blue/50 hover:shadow-md transition-all group cursor-default"
                       >
-                        <BookOpen className="w-4 h-4 text-unet-blue mr-2 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                        <span className="text-gray-800 text-xs font-semibold leading-tight line-clamp-2">{materia}</span>
+                        <BookOpen className="w-4 h-4 text-unet-blue mr-2.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                        <span className="text-gray-800 text-xs sm:text-sm font-semibold leading-snug break-words">{materia}</span>
                       </div>
                     ))}
                   </div>
                 ))} />
-              </div>
-
-              <div className="text-center pt-4 border-t border-gray-100 mt-4">
-                <p className="text-xs text-gray-500 font-medium">
-                  Desliza para ver la oferta de asignaturas del Departamento de Informática (4x4)
-                </p>
               </div>
             </div>
 

@@ -1,11 +1,14 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { User, Mail, FileText, CheckCircle, AlertCircle, BookOpen, Layers } from 'lucide-react'
 import { useInscripcion } from '../context/InscripcionContext'
 import { pensumMaterias } from '../data/pensum'
-import { MAX_MATERIAS_POR_ESTUDIANTE as MAX_MATERIAS } from '../data/subjects'
+import { informaticaSubjects, MAX_MATERIAS_POR_ESTUDIANTE as MAX_MATERIAS } from '../data/subjects'
 
 function Inscripcion() {
+  const [searchParams] = useSearchParams()
+  const materiaParam = searchParams.get('materia')
+
   const [formData, setFormData] = useState({
     nombre: '',
     cedula: '',
@@ -14,18 +17,23 @@ function Inscripcion() {
   
   // Campo de cuántas materias va a solicitar (Página 1 del documento)
   const [cantidadMaterias, setCantidadMaterias] = useState(1)
+  
   // Preselección por URL si se navega con ?materia=...
   const [materiasSeleccionadas, setMateriasSeleccionadas] = useState(() => {
-    const searchParams = new URLSearchParams(window.location.search)
-    const matParam = searchParams.get('materia')
-    return matParam ? [matParam] : ['']
+    return materiaParam ? [materiaParam] : ['']
   })
+
+  useEffect(() => {
+    if (materiaParam) {
+      setMateriasSeleccionadas([materiaParam])
+    }
+  }, [materiaParam])
   
   const [errors, setErrors] = useState({})
   const [submitted, setSubmitted] = useState(false)
   
   const { inscripcionHabilitada, materiasHabilitadas, agregarSolicitud } = useInscripcion()
-  // Permitir seleccionar cualquier materia de informaticaSubjects (incluso si estuviese deshabilitada)
+  // Permitir seleccionar cualquier materia de informaticaSubjects
   const materiasDisponibles = informaticaSubjects
 
   const validateEmail = (email) => {
