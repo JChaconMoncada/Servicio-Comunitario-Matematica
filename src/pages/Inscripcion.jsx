@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { User, Mail, FileText, CheckCircle, AlertCircle, BookOpen, Layers } from 'lucide-react'
 import { useInscripcion } from '../context/InscripcionContext'
 import { pensumMaterias } from '../data/pensum'
+import { MAX_MATERIAS_POR_ESTUDIANTE as MAX_MATERIAS } from '../data/subjects'
 
 function Inscripcion() {
   const [formData, setFormData] = useState({
@@ -62,7 +63,7 @@ function Inscripcion() {
 
   const handleCantidadChange = (e) => {
     const num = parseInt(e.target.value) || 1
-    const clamped = Math.max(1, Math.min(10, num))
+    const clamped = Math.max(1, Math.min(MAX_MATERIAS, num))
     setCantidadMaterias(clamped)
     
     // Ajustar el arreglo de materias seleccionadas según la nueva cantidad
@@ -93,8 +94,17 @@ function Inscripcion() {
   const validateForm = () => {
     const newErrors = {}
     
-    if (!formData.nombre.trim()) {
+    const nombreLimpio = formData.nombre.trim().replace(/\s+/g, ' ')
+    if (!nombreLimpio) {
       newErrors.nombre = 'El nombre completo es requerido'
+    } else if (!/^[A-Za-zÀ-ÿÑñ'´’ .-]+$/.test(nombreLimpio)) {
+      newErrors.nombre = 'El nombre solo puede contener letras, espacios, guiones y puntos'
+    } else if (nombreLimpio.length < 5) {
+      newErrors.nombre = 'El nombre completo debe tener al menos 5 caracteres'
+    } else if (nombreLimpio.length > 80) {
+      newErrors.nombre = 'El nombre completo no debe superar los 80 caracteres'
+    } else if (nombreLimpio.split(' ').filter(p => p.length >= 2).length < 2) {
+      newErrors.nombre = 'Ingresa al menos un nombre y un apellido'
     }
     
     if (!formData.cedula.trim()) {
@@ -112,6 +122,8 @@ function Inscripcion() {
     const validas = materiasSeleccionadas.filter(m => m.trim() !== '')
     if (validas.length === 0) {
       newErrors.materias = 'Debe seleccionar al menos una materia'
+    } else if (validas.length > MAX_MATERIAS) {
+      newErrors.materias = `Solo puedes solicitar un máximo de ${MAX_MATERIAS} materias.`
     } else if (new Set(validas).size !== validas.length) {
       newErrors.materias = 'No debe seleccionar materias duplicadas'
     } else {
@@ -136,7 +148,7 @@ function Inscripcion() {
     if (validateForm()) {
       const validas = materiasSeleccionadas.filter(m => m.trim() !== '')
       const response = await agregarSolicitud({
-        nombre: formData.nombre,
+        nombre: formData.nombre.trim().replace(/\s+/g, ' '),
         cedula: formData.cedula,
         correo: formData.correo,
         materias: validas
@@ -173,7 +185,7 @@ function Inscripcion() {
               <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
               <h1 className="text-3xl font-bold text-unet-blue mb-4">¡Inscripción Tardía Recibida!</h1>
               <p className="text-gray-600 mb-6">
-                Tu solicitud ha sido procesada y guardada correctamente en el sistema de la universidad.
+                Tu solicitud ha sido procesada y has sido añadido a la correspondiente lista de espera de las materias solicitadas.
               </p>
               <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left border border-gray-200">
                 <h3 className="font-bold text-unet-blue mb-4 flex items-center">
@@ -307,7 +319,7 @@ function Inscripcion() {
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max={MAX_MATERIAS}
                   value={cantidadMaterias}
                   onChange={handleCantidadChange}
                   className="w-full sm:w-48 px-4 py-2.5 rounded-lg border border-gray-300 bg-white font-semibold text-unet-blue focus:ring-2 focus:ring-unet-blue"
@@ -315,6 +327,7 @@ function Inscripcion() {
                 />
                 <p className="text-gray-500 text-xs mt-1">
                   Al cambiar este número se desplegarán los campos necesarios para solicitar todas tus materias en un solo envío.
+                  Máximo {MAX_MATERIAS} materias por estudiante (contando todas tus solicitudes).
                 </p>
               </div>
 

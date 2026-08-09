@@ -1,3 +1,7 @@
+// Límite de materias que un estudiante puede solicitar en total (acumulado
+// entre todas sus solicitudes, no por solicitud individual).
+export const MAX_MATERIAS_POR_ESTUDIANTE = 3
+
 export const informaticaSubjects = [
   "Introducción a la Ingeniería en Informática",
   "Computación 1",

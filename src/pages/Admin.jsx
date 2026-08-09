@@ -107,6 +107,24 @@ function Admin() {
   const solicitudesDelPeriodo = solicitudes.filter(s => s.periodo === periodoActivo)
 
   const [isGenerandoDemoGlobal, setIsGenerandoDemoGlobal] = useState(false)
+  const [leyendaAbierta, setLeyendaAbierta] = useState(false)
+
+  // ===== Estadísticas del periodo =====
+  // Total que solicitaron cupo: estudiantes únicos con al menos una solicitud.
+  const totalSolicitaronCupo = solicitudesDelPeriodo.length
+
+  // Total inscritos: estudiantes que quedaron dentro de una sección ya APROBADA
+  // (cerrada). Al aprobar una sección, sus estudiantes cuentan como inscritos.
+  // Se cuentan cédulas únicas para no duplicar a quien esté en varias materias.
+  const cedulasInscritas = new Set()
+  secciones.forEach(sec => {
+    if (!sec.aprobada) return
+    sec.estudiantes?.forEach(e => cedulasInscritas.add(e.cedula))
+  })
+  const totalInscritos = cedulasInscritas.size
+
+  // Total sin cupo: solicitaron pero no quedaron en ninguna sección aprobada.
+  const totalSinCupo = solicitudesDelPeriodo.filter(s => !cedulasInscritas.has(s.cedula)).length
 
   const handleGenerarDemoGlobal = async () => {
     if (!window.confirm('¿Deseas generar 60 estudiantes de prueba distribuidos aleatoriamente entre las materias habilitadas?')) return
@@ -187,8 +205,6 @@ function Admin() {
     setNewPassword('')
     alert("¡Contraseña de administrador cambiada con éxito!")
   }
-
-  const materiasDisponiblesCount = Object.values(materiasHabilitadas).filter(Boolean).length
 
   // Manejo de creación de sección presencial
   const handleCrearPresencial = async (e) => {
@@ -442,6 +458,17 @@ function Admin() {
             >
               <AlertCircle className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Historial de Choques
             </button>
+
+            <button
+              onClick={() => setActiveTab('estadisticas')}
+              className={`flex items-center px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all ${
+                activeTab === 'estadisticas'
+                  ? 'bg-unet-blue text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <BarChart3 className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Estadísticas
+            </button>
           </div>
 
           {/* VISTA 1: CONTROL GENERAL / PANEL PRINCIPAL (Página 2) */}
@@ -519,28 +546,6 @@ function Admin() {
                 </div>
               )}
 
-              {/* Estadísticas del Panel (Página 2) */}
-              <div>
-                <h2 className="text-2xl font-bold text-center mb-6 text-unet-blue">Estadísticas</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-                  <div className="card text-center bg-white p-6 rounded-2xl shadow border border-gray-200">
-                    <Users className="w-12 h-12 text-unet-blue mx-auto mb-3" />
-                    <div className="text-4xl font-extrabold text-unet-blue mb-1">
-                      {solicitudesDelPeriodo.length}
-                    </div>
-                    <div className="text-gray-600 text-sm font-semibold">Total de Inscritos ({periodoActivo})</div>
-                  </div>
-
-                  <div className="card text-center bg-white p-6 rounded-2xl shadow border border-gray-200">
-                    <BookOpen className="w-12 h-12 text-unet-blue mx-auto mb-3" />
-                    <div className="text-4xl font-extrabold text-unet-blue mb-1">
-                      {materiasDisponiblesCount}
-                    </div>
-                    <div className="text-gray-600 text-sm font-semibold">Materias Habilitadas</div>
-                  </div>
-                </div>
-              </div>
-
               {/* REQUERIMIENTO PÁGINA 2: Control de Disponibilidad de Materias */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <h2 className="text-2xl font-bold text-unet-blue mb-2">Control de Disponibilidad de Materias</h2>
@@ -617,7 +622,7 @@ function Admin() {
                     <div>
                       <h2 className="text-2xl font-bold text-unet-blue">Control de Demanda de Estudiantes</h2>
                       <p className="text-gray-600 text-sm">
-                        Previsualización en formato de hoja de cálculo de los primeros 10 estudiantes por materia. Haz clic en una tabla para abrir el listado completo.
+                        Previsualización en formato de hoja de cálculo de los primeros 6 estudiantes por materia. Haz clic en una tabla para abrir el listado completo.
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -710,9 +715,48 @@ function Admin() {
                     >
                       ← Volver al control de hojas de cálculo
                     </button>
-                    <span className="text-xs bg-blue-100 text-unet-blue font-bold px-3 py-1 rounded-full">
-                      Materia: {materiaSeleccionadaDetalle}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {/* Leyenda de colores de estado */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setLeyendaAbierta(!leyendaAbierta)}
+                          className={`w-7 h-7 rounded-lg border-2 font-extrabold text-sm transition-all ${
+                            leyendaAbierta
+                              ? 'bg-unet-blue text-white border-unet-blue'
+                              : 'bg-white text-unet-blue border-gray-300 hover:border-unet-blue'
+                          }`}
+                          title="¿Qué significa cada color?"
+                        >
+                          ?
+                        </button>
+
+                        {leyendaAbierta && (
+                          <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 z-40">
+                            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                              Significado de los colores
+                            </p>
+                            <ul className="space-y-2 text-sm">
+                              {[
+                                { color: 'bg-green-500', label: 'Inscrito' },
+                                { color: 'bg-purple-600', label: 'Choque de Horario' },
+                                { color: 'bg-orange-500', label: 'Exceso de UC' },
+                                { color: 'bg-red-500', label: 'Bajo Índice' },
+                                { color: 'bg-gray-300', label: 'Sin Asignar' }
+                              ].map(item => (
+                                <li key={item.label} className="flex items-center gap-2 text-gray-700">
+                                  <span className={`w-4 h-4 rounded-full flex-shrink-0 shadow-sm ${item.color}`} />
+                                  {item.label}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="text-xs bg-blue-100 text-unet-blue font-bold px-3 py-1 rounded-full">
+                        Materia: {materiaSeleccionadaDetalle}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
@@ -743,11 +787,13 @@ function Admin() {
                             .map((sol, index) => {
                               const matObj = sol.materiasSolicitadas.find(m => m.materia === materiaSeleccionadaDetalle)
                               
-                              // El estado de rechazo (rojo/anaranjado/morado) es siempre autoritativo:
-                              // si el departamento ya rechazó al estudiante, no debe mostrarse en
-                              // verde aunque exista alguna fila residual "verificado" en otra sección.
+                              // Los rechazos definitivos (rojo = bajo índice, anaranjado = exceso
+                              // de UC) son autoritativos: no deben mostrarse en verde aunque exista
+                              // alguna fila residual "verificado" en otra sección. El morado (choque
+                              // de horario) sí puede pasar a verde si el estudiante fue reubicado y
+                              // luego marcado como Inscrito en la nueva sección.
                               const estadoSolicitud = matObj ? matObj.estado : 'gris'
-                              const esRechazado = ['rojo', 'anaranjado', 'morado'].includes(estadoSolicitud)
+                              const esRechazado = ['rojo', 'anaranjado'].includes(estadoSolicitud)
 
                               const estaVerificado = !esRechazado && secciones.some(sec => 
                                 sec.materia === materiaSeleccionadaDetalle && 
@@ -766,19 +812,19 @@ function Admin() {
                                   {/* Columna Estado (Verde=Asignado, Rojo=Bajo Índice, Anaranjado=Exceso UC, Morado=Choque, Gris=Pendiente) */}
                                   <td className="py-3 px-4 text-center">
                                     {estado === 'verde' && (
-                                      <span className="w-6 h-6 rounded-full bg-green-500 inline-block shadow-sm" title="Asignado a sección disponible"></span>
+                                      <span className="w-6 h-6 rounded-full bg-green-500 inline-block shadow-sm" title="Inscrito"></span>
                                     )}
                                     {estado === 'rojo' && (
-                                      <span className="w-6 h-6 rounded-full bg-red-500 inline-block shadow-sm" title="Rechazado (Bajo Índice)"></span>
+                                      <span className="w-6 h-6 rounded-full bg-red-500 inline-block shadow-sm" title="Bajo Índice"></span>
                                     )}
                                     {estado === 'anaranjado' && (
-                                      <span className="w-6 h-6 rounded-full bg-orange-500 inline-block shadow-sm" title="Rechazado (Exceso de UC)"></span>
+                                      <span className="w-6 h-6 rounded-full bg-orange-500 inline-block shadow-sm" title="Exceso de UC"></span>
                                     )}
                                     {estado === 'morado' && (
-                                      <span className="w-6 h-6 rounded-full bg-purple-600 inline-block shadow-sm" title="Rechazado (Choque de Horario)"></span>
+                                      <span className="w-6 h-6 rounded-full bg-purple-600 inline-block shadow-sm" title="Choque de Horario"></span>
                                     )}
                                     {estado === 'gris' && (
-                                      <span className="w-6 h-6 rounded-full bg-gray-300 inline-block shadow-sm" title="Sin asignar aún"></span>
+                                      <span className="w-6 h-6 rounded-full bg-gray-300 inline-block shadow-sm" title="Sin Asignar"></span>
                                     )}
                                   </td>
 
@@ -1116,6 +1162,80 @@ function Admin() {
                   </>
                 )
               })()}
+            </div>
+          )}
+
+          {/* VISTA: ESTADÍSTICAS */}
+          {activeTab === 'estadisticas' && (
+            <div className="space-y-8 animate-fadeIn">
+              <div>
+                <h2 className="text-2xl font-bold text-unet-blue">Estadísticas</h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  Resumen del periodo <span className="font-semibold text-gray-700">{periodoActivo}</span>.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-2xl shadow border border-gray-200 text-center">
+                  <Users className="w-12 h-12 text-unet-blue mx-auto mb-3" />
+                  <div className="text-4xl font-extrabold text-unet-blue mb-1">{totalSolicitaronCupo}</div>
+                  <div className="text-gray-600 text-sm font-semibold">Total de estudiantes que solicitaron cupo</div>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow border border-gray-200 text-center">
+                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                  <div className="text-4xl font-extrabold text-green-600 mb-1">{totalInscritos}</div>
+                  <div className="text-gray-600 text-sm font-semibold">Total de estudiantes inscritos</div>
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    Estudiantes dentro de secciones ya aprobadas (cerradas).
+                  </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow border border-gray-200 text-center">
+                  <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
+                  <div className="text-4xl font-extrabold text-rose-500 mb-1">{totalSinCupo}</div>
+                  <div className="text-gray-600 text-sm font-semibold">Total de estudiantes que se quedaron sin cupo</div>
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    Solicitaron cupo pero aún no están en ninguna sección aprobada.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h3 className="text-lg font-bold text-unet-blue mb-4">Detalle por secciones aprobadas</h3>
+                {secciones.filter(s => s.aprobada).length === 0 ? (
+                  <p className="text-gray-400 italic text-sm">
+                    Aún no hay secciones aprobadas. Al aprobar una sección, sus estudiantes se suman al total de inscritos.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-blue-50 text-unet-blue font-bold border-b border-gray-200">
+                        <tr>
+                          <th className="py-3 px-4">Materia</th>
+                          <th className="py-3 px-4 text-center">Sección</th>
+                          <th className="py-3 px-4 text-center">Modalidad</th>
+                          <th className="py-3 px-4 text-center">Estudiantes inscritos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {secciones.filter(s => s.aprobada).map(sec => (
+                          <tr key={sec.id} className="hover:bg-blue-50/40 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-gray-900">{sec.materia}</td>
+                            <td className="py-3 px-4 text-center text-gray-700">{sec.seccion}</td>
+                            <td className="py-3 px-4 text-center text-gray-700">{sec.modalidad}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                {sec.estudiantes?.length || 0}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

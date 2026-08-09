@@ -10,8 +10,12 @@ function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 md:space-x-3">
-            <img src="/unet-logo.png" alt="UNET Logo" className="h-10 md:h-12 w-auto" />
-            <span className="text-lg md:text-xl lg:text-2xl font-bold">UNET - Inscripciones Tardías</span>
+            <img src="/unet-logo.png" alt="UNET Logo" className="h-10 md:h-14 w-auto flex-shrink-0" />
+            <span className="font-bold leading-tight text-[10px] sm:text-xs md:text-sm lg:text-base uppercase tracking-wide">
+              Universidad Nacional Experimental del Táchira
+              <span className="block font-semibold text-white/90">Vicerrectorado Académico</span>
+              <span className="block font-semibold text-white/90">Decanato de Docencia Departamento de Informática</span>
+            </span>
           </Link>
           
           {/* Mobile menu button */}
@@ -23,11 +27,10 @@ function Header() {
           </button>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-4 lg:space-x-6">
+          <nav className="hidden md:flex space-x-4 lg:space-x-6 flex-shrink-0">
             <Link to="/" className="hover:text-unet-gold transition-colors text-sm lg:text-base">Inicio</Link>
-            <Link to="/informatica" className="hover:text-unet-gold transition-colors text-sm lg:text-base">Departamentos</Link>
+            <Link to="/pensum" className="hover:text-unet-gold transition-colors text-sm lg:text-base">Pensum</Link>
             <Link to="/admin" className="hover:text-unet-gold transition-colors text-sm lg:text-base">Admin</Link>
-            <a href="#contacto" className="hover:text-unet-gold transition-colors text-sm lg:text-base">Contacto</a>
           </nav>
         </div>
 
@@ -42,11 +45,11 @@ function Header() {
               Inicio
             </Link>
             <Link 
-              to="/informatica" 
+              to="/pensum" 
               className="block hover:text-unet-gold transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              Departamentos
+              Pensum
             </Link>
             <Link 
               to="/admin" 
@@ -55,13 +58,6 @@ function Header() {
             >
               Admin
             </Link>
-            <a 
-              href="#contacto" 
-              className="block hover:text-unet-gold transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              Contacto
-            </a>
           </nav>
         )}
       </div>

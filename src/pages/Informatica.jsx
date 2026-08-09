@@ -23,26 +23,6 @@ function Informatica() {
         </div>
       </section>
 
-      {/* Statistics Section */}
-      <section className="py-8 md:py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-unet-blue mb-2">+{informaticaSubjects.length}</div>
-              <div className="text-gray-600 text-sm md:text-base">Materias</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-unet-blue mb-2">18</div>
-              <div className="text-gray-600 text-sm md:text-base">Profesores</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-unet-blue mb-2">100%</div>
-              <div className="text-gray-600 text-sm md:text-base">Tecnológico</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Department Information */}
       <section className="py-12 md:py-16 bg-unet-gray">
         <div className="container mx-auto px-4">
@@ -134,7 +114,7 @@ function Informatica() {
             <div className="card text-center">
               <Mail className="w-10 h-10 md:w-12 md:h-12 text-unet-blue mx-auto mb-4" />
               <h3 className="text-lg md:text-xl font-bold mb-2 text-unet-blue">Correo</h3>
-              <p className="text-gray-600 text-sm md:text-base">informatica@unet.edu.ve</p>
+              <p className="text-gray-600 text-sm md:text-base">informat@unet.edu.ve</p>
             </div>
 
             <div className="card text-center">

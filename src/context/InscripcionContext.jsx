@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { informaticaSubjects } from '../data/subjects'
+import { informaticaSubjects, MAX_MATERIAS_POR_ESTUDIANTE } from '../data/subjects'
 import { pensumMaterias } from '../data/pensum'
 import emailjs from '@emailjs/browser'
 
@@ -147,6 +147,21 @@ export const InscripcionProvider = ({ children }) => {
     if (yaSolicito) {
       const materiaDuplicada = yaSolicito.materiasSolicitadas.find(m => materias.includes(m.materia)).materia
       return { success: false, error: `Ya has enviado una solicitud previa para la materia: ${materiaDuplicada}` }
+    }
+
+    // Límite acumulado de materias por estudiante: se cuentan TODAS las materias
+    // que la cédula ya haya solicitado en envíos anteriores más las nuevas, de
+    // modo que no pueda saltarse el tope haciendo varias solicitudes pequeñas.
+    const solicitudPrevia = solicitudes.find(s => s.cedula === cedula)
+    const yaSolicitadas = solicitudPrevia?.materiasSolicitadas?.length || 0
+    if (yaSolicitadas + materias.length > MAX_MATERIAS_POR_ESTUDIANTE) {
+      const restantes = Math.max(0, MAX_MATERIAS_POR_ESTUDIANTE - yaSolicitadas)
+      return {
+        success: false,
+        error: restantes === 0
+          ? `Ya alcanzaste el máximo de ${MAX_MATERIAS_POR_ESTUDIANTE} materias permitidas por estudiante.`
+          : `Solo puedes solicitar ${MAX_MATERIAS_POR_ESTUDIANTE} materias en total. Ya tienes ${yaSolicitadas} solicitada(s), por lo que solo puedes agregar ${restantes} más.`
+      }
     }
 
     // 1. Verificar si ya existe el estudiante (la cédula es UNIQUE en solicitudes)
@@ -361,6 +376,19 @@ export const InscripcionProvider = ({ children }) => {
       copy[indexEstudiante] = { ...copy[indexEstudiante], verificado: true }
       return { ...s, estudiantes: copy }
     }))
+
+    // Al quedar inscrito, la materia solicitada pasa a 'verde'. Esto también
+    // limpia un posible estado 'morado' previo si el estudiante había tenido un
+    // choque de horario y fue reubicado en esta sección.
+    const sol = solicitudes.find(s => s.cedula === estudiante.cedula)
+    const materiaEnSeccion = sol?.materiasSolicitadas?.find(m => m.materia === sec.materia)
+    if (materiaEnSeccion && materiaEnSeccion.estado !== 'verde') {
+      await supabase.from('solicitudes_materias').update({ estado: 'verde' }).eq('id', materiaEnSeccion.id)
+      setSolicitudes(prev => prev.map(s => {
+        if (s.id !== sol.id) return s
+        return { ...s, materiasSolicitadas: s.materiasSolicitadas.map(m => m.id === materiaEnSeccion.id ? { ...m, estado: 'verde' } : m) }
+      }))
+    }
   }
 
   // Marcar como no se pudo inscribir (eliminar de la sección)
@@ -600,12 +628,14 @@ export const InscripcionProvider = ({ children }) => {
         }))
       }
 
-      // Asegurar que la materia quede en estado 'gris' (pendiente de verificación en la nueva sección)
-      if (materiaEnSeccion && materiaEnSeccion.estado !== 'gris') {
-        await supabase.from('solicitudes_materias').update({ estado: 'gris' }).eq('id', materiaEnSeccion.id)
+      // El estudiante tuvo un choque de horario, así que su materia queda marcada
+      // como 'morado' (Choque de Horario) aunque haya sido reubicado. Cuando se le
+      // marque como Inscrito en la nueva sección, pasará a verde.
+      if (materiaEnSeccion && materiaEnSeccion.estado !== 'morado') {
+        await supabase.from('solicitudes_materias').update({ estado: 'morado' }).eq('id', materiaEnSeccion.id)
         setSolicitudes(prev => prev.map(s => {
           if (s.id !== sol.id) return s
-          return { ...s, materiasSolicitadas: s.materiasSolicitadas.map(m => m.id === materiaEnSeccion.id ? { ...m, estado: 'gris' } : m) }
+          return { ...s, materiasSolicitadas: s.materiasSolicitadas.map(m => m.id === materiaEnSeccion.id ? { ...m, estado: 'morado' } : m) }
         }))
       }
 
