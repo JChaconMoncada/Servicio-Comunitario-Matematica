@@ -89,14 +89,14 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen space-y-0">
+    <div className="min-h-screen bg-white space-y-0">
 
-      {/* ===== BLOQUE PRINCIPAL: Inscripción + Materias del Departamento ===== */}
-      <section className="bg-white py-8 md:py-12">
+      {/* ===== BLOQUE PRINCIPAL 1: Inscripción + Materias del Departamento ===== */}
+      <section className="bg-white py-8 md:py-12 border-b border-gray-100">
         <div className="container mx-auto px-4 sm:px-6 max-w-[1400px]">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
 
-            {/* Columna izquierda: Cómo realizar tu inscripción (5/12 de ancho) */}
+            {/* Columna izquierda: Cómo realizar tu inscripción (5/12) */}
             <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
               <div>
                 <h2 className="text-2xl md:text-3xl font-extrabold text-unet-blue mb-3">
@@ -135,7 +135,7 @@ function Home() {
               </div>
             </div>
 
-            {/* Columna derecha: Materias del Departamento (7/12 de ancho para recuadros anchos) */}
+            {/* Columna derecha: Materias del Departamento (7/12) */}
             <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 flex flex-col justify-between h-full">
               <div>
                 <h2 className="text-2xl md:text-3xl font-extrabold text-center text-unet-blue mb-6">
@@ -162,8 +162,40 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== NUEVO APARTADO: Materias con Cupo Disponible ===== */}
-      <section className="bg-gradient-to-b from-gray-50 via-blue-50/30 to-white py-12 md:py-16 border-t border-b border-gray-200/80">
+      {/* ===== BLOQUE PRINCIPAL 2: INFORMACIÓN DEL DEPARTAMENTO (Arriba de cupos disponibles) ===== */}
+      <section id="contacto" className="bg-white py-12 md:py-16 border-b border-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-unet-blue mb-3">
+            Información del Departamento
+          </h2>
+          <p className="text-center text-gray-600 text-base md:text-lg mb-10 max-w-2xl mx-auto">
+            Todo lo que necesitas saber para tu inscripción tardía y cómo contactarnos.
+          </p>
+
+          <div className="max-w-5xl mx-auto px-2 md:px-8">
+            <Carrusel intervalo={6000} slides={gruposInfo.map((grupo, gIdx) => (
+              <div key={gIdx} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {grupo.map((item, idx) => {
+                  const Icono = item.icono
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 text-center hover:shadow-md transition-all min-h-[210px] flex flex-col items-center justify-center"
+                    >
+                      <Icono className="w-12 h-12 text-unet-blue mb-4" />
+                      <h3 className="text-lg md:text-xl font-bold mb-2 text-unet-blue">{item.titulo}</h3>
+                      <p className="text-gray-600 text-sm md:text-base">{item.texto}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            ))} />
+          </div>
+        </div>
+      </section>
+
+      {/* ===== BLOQUE PRINCIPAL 3: Materias con Cupo Disponible ===== */}
+      <section className="bg-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-10">
             <span className="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-xs inline-flex items-center mb-3">
@@ -213,38 +245,6 @@ function Home() {
                 </Link>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== INFORMACIÓN DEL DEPARTAMENTO (carrusel desplazable) ===== */}
-      <section id="contacto" className="bg-unet-gray py-12 md:py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-unet-blue mb-3">
-            Información del Departamento
-          </h2>
-          <p className="text-center text-gray-600 text-base md:text-lg mb-10 max-w-2xl mx-auto">
-            Todo lo que necesitas saber para tu inscripción tardía y cómo contactarnos.
-          </p>
-
-          <div className="max-w-5xl mx-auto px-2 md:px-8">
-            <Carrusel intervalo={6000} slides={gruposInfo.map((grupo, gIdx) => (
-              <div key={gIdx} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {grupo.map((item, idx) => {
-                  const Icono = item.icono
-                  return (
-                    <div
-                      key={idx}
-                      className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 text-center hover:shadow-lg transition-all min-h-[210px] flex flex-col items-center justify-center"
-                    >
-                      <Icono className="w-12 h-12 text-unet-blue mb-4" />
-                      <h3 className="text-lg md:text-xl font-bold mb-2 text-unet-blue">{item.titulo}</h3>
-                      <p className="text-gray-600 text-sm md:text-base">{item.texto}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            ))} />
           </div>
         </div>
       </section>
