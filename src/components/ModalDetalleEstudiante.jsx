@@ -3,23 +3,30 @@ import { X, UserCheck, Mail, CreditCard, BookOpen, AlertTriangle } from 'lucide-
 import { useInscripcion } from '../context/InscripcionContext'
 import { pensumMaterias } from '../data/pensum'
 
-export default function ModalDetalleEstudiante({ estudiante, onClose }) {
+export default function ModalDetalleEstudiante({ estudiante, materiaContext, onClose }) {
   const { rechazarEstudiante } = useInscripcion()
   const [razonRechazo, setRazonRechazo] = React.useState('')
   const [reglaUC, setReglaUC] = React.useState('')
   const [motivoRechazo, setMotivoRechazo] = React.useState('exceso_uc')
   const [procesando, setProcesando] = React.useState(false)
 
-  // Bloquear el scroll de la página de fondo solo mientras el modal esté realmente
-  // abierto (con un estudiante seleccionado). Depende de `estudiante` porque este
-  // componente puede quedar montado permanentemente con estudiante=null.
+  // Obtener UC de cualquier materia (del pensum o fallback)
+  const getUCForMateria = (nombreMateria) => {
+    const info = pensumMaterias.find(p => p.nombre === nombreMateria)
+    if (info) return info.uc
+    if (nombreMateria.includes('Computación 2') || nombreMateria.includes('Computación Aplicada') || nombreMateria.includes('Programación 2') || nombreMateria.includes('Base de Datos')) return 3
+    if (nombreMateria.includes('Introducción') || nombreMateria.includes('Efectividad') || nombreMateria.includes('Laboratorio')) return 1
+    return 3
+  }
+
+  const infoMateriaContext = materiaContext ? pensumMaterias.find(p => p.nombre === materiaContext) : null
+  const ucContext = materiaContext ? (infoMateriaContext ? infoMateriaContext.uc : getUCForMateria(materiaContext)) : null
+
+  // Bloquear el scroll de la página de fondo solo mientras el modal esté realmente abierto
   React.useEffect(() => {
     if (!estudiante) return
     document.body.style.overflow = 'hidden'
     return () => {
-      // Se restaura explícitamente a vacío (valor por defecto del CSS) en vez de
-      // guardar/restaurar el valor computado, para evitar que quede bloqueado
-      // permanentemente si el modal se desmonta de forma inesperada.
       document.body.style.overflow = ''
     }
   }, [estudiante])
@@ -38,27 +45,17 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
 
     setProcesando(true)
     let ucsProhibidas = []
-    if (motivoRechazo === 'choque_horario' || motivoRechazo === 'bajo_indice') {
-      // Para choque de horario y bajo índice, rechazar TODAS las materias solicitadas
-      // (la restricción por rango de UC solo aplica al motivo de Exceso de UC).
+    if (motivoRechazo === 'choque_horario' || motivoRechazo === 'bajo_indice' || reglaUC === 'todas') {
+      // Para choque de horario, bajo índice o si no le quedan UC, rechazar TODAS las materias
       const todasLasUC = [...new Set(estudiante.materiasSolicitadas.map(m => {
-        const info = pensumMaterias.find(p => p.nombre === m.materia)
-        return info ? info.uc : -1
+        return getUCForMateria(m.materia)
       }).filter(uc => uc >= 0))]
       ucsProhibidas = todasLasUC
     } else {
       if (reglaUC === '4') ucsProhibidas = [4]
-      else if (reglaUC === '3_y_4') ucsProhibidas = [3, 4]
-      else if (reglaUC === '2_3_y_4') ucsProhibidas = [2, 3, 4]
-      else if (reglaUC === '1_2_3_y_4') ucsProhibidas = [1, 2, 3, 4]
-      else if (reglaUC === 'todas') {
-        // Bloquear TODAS las materias: recopilar todas las UCs del estudiante
-        const todasLasUC = [...new Set(estudiante.materiasSolicitadas.map(m => {
-          const info = pensumMaterias.find(p => p.nombre === m.materia)
-          return info ? info.uc : -1
-        }).filter(uc => uc >= 0))]
-        ucsProhibidas = todasLasUC
-      }
+      else if (reglaUC === '3') ucsProhibidas = [3]
+      else if (reglaUC === '2') ucsProhibidas = [2]
+      else if (reglaUC === '1') ucsProhibidas = [1]
     }
 
     const result = await rechazarEstudiante(estudiante, ucsProhibidas, razonRechazo, motivoRechazo)
@@ -91,10 +88,28 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
           </button>
         </div>
 
-        {/* Scrollable Container with min-h-0 for CSS flexbox */}
+        {/* Scrollable Container */}
         <div className="overflow-y-auto flex-1 min-h-0">
           {/* Body Modal */}
           <div className="p-6 space-y-6">
+          
+          {/* Título de la materia que se está consultando */}
+          {materiaContext && (
+            <div className="bg-blue-50 border-2 border-unet-blue/30 rounded-xl p-3.5 flex items-center justify-between text-unet-blue shadow-sm">
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider bg-unet-blue text-white px-2 py-0.5 rounded">
+                  Materia en Consulta
+                </span>
+                <h4 className="font-extrabold text-sm sm:text-base">{materiaContext}</h4>
+              </div>
+              {ucContext !== null && (
+                <span className="text-xs font-extrabold bg-blue-200 text-blue-900 px-2.5 py-1 rounded-full border border-blue-300">
+                  {ucContext} UC
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Avatar and Main Info Card */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left space-y-4 sm:space-y-0 sm:space-x-4 bg-blue-50/60 p-4 rounded-xl border border-blue-100">
             <div className="w-16 h-16 flex-shrink-0 rounded-full bg-unet-blue text-white flex items-center justify-center text-2xl font-bold shadow-md">
@@ -115,7 +130,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
             </div>
           </div>
 
-          {/* Materias Solicitadas Breakdown (Página 4 del documento PDF) */}
+          {/* Materias Solicitadas Breakdown */}
           <div>
             <h5 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center">
               <BookOpen className="w-4 h-4 mr-2 text-unet-blue" />
@@ -125,6 +140,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
             <div className="space-y-2">
               {estudiante.materiasSolicitadas && estudiante.materiasSolicitadas.length > 0 ? (
                 estudiante.materiasSolicitadas.map((item, idx) => {
+                  const ucMateria = getUCForMateria(item.materia)
                   let badgeColor = 'bg-gray-200 text-gray-800 border-gray-300'
                   let badgeText = 'No se ha asignado sesión aún'
 
@@ -142,14 +158,28 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                     badgeText = 'Rechazado (Choque de Horario)'
                   }
 
+                  const esMateriaConsulta = materiaContext === item.materia
+
                   return (
                     <div 
                       key={idx}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                        esMateriaConsulta ? 'bg-blue-50 border-unet-blue/40 ring-1 ring-unet-blue/30' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }`}
                     >
-                      <span className="text-sm font-semibold text-gray-800">
-                        • {item.materia}
-                      </span>
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">
+                          • {item.materia}
+                        </span>
+                        <span className="text-xs font-bold bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
+                          {ucMateria} UC
+                        </span>
+                        {esMateriaConsulta && (
+                          <span className="text-[10px] font-extrabold bg-unet-blue text-white px-1.5 py-0.5 rounded">
+                            En consulta
+                          </span>
+                        )}
+                      </div>
                       <span className={`text-xs px-2.5 py-1 rounded-full shadow-sm ${badgeColor}`}>
                         ({badgeText})
                       </span>
@@ -163,14 +193,14 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
           </div>
           </div>
 
-        {/* Sección de Rechazo (Nueva Funcionalidad) */}
+        {/* Sección de Rechazo */}
         <div className="bg-orange-50 p-6 border-t border-orange-100 space-y-4">
           <h5 className="text-sm font-bold text-orange-800 uppercase tracking-wider flex items-center mb-2">
             <AlertTriangle className="w-4 h-4 mr-2" />
             Rechazar Solicitudes
           </h5>
           <p className="text-xs text-orange-700">
-            Si el estudiante no cumple con las UC requeridas, puedes bloquear sus solicitudes para materias pesadas. Se le enviará un correo automáticamente.
+            Si el estudiante no cumple con las UC requeridas, puedes bloquear sus solicitudes. Se le enviará un correo automáticamente.
           </p>
 
           <div className="space-y-3">
@@ -179,7 +209,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
               <select 
                 value={motivoRechazo} 
                 onChange={(e) => setMotivoRechazo(e.target.value)}
-                className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 font-medium"
               >
                 <option value="exceso_uc">Exceso de Unidades de Crédito</option>
                 <option value="bajo_indice">Bajo Índice</option>
@@ -188,59 +218,52 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
             </div>
 
             {motivoRechazo === 'exceso_uc' && (() => {
-              // Calcular las UCs únicas de las materias que el estudiante solicitó
-              const ucsDelEstudiante = [...new Set(
-                estudiante.materiasSolicitadas
-                  .map(m => {
-                    const info = pensumMaterias.find(p => p.nombre === m.materia)
-                    return info ? info.uc : -1
-                  })
-                  .filter(uc => uc >= 0)
-              )].sort((a, b) => b - a) // Ordenar de mayor a menor
-
-              // Generar las opciones de restricción que realmente aplican al estudiante.
-              // Cada opción dice "No puede ver materias de X UC" y solo se muestra si
-              // al menos una materia solicitada cae en ese rango.
-              const opcionesDisponibles = []
-
-              // Opciones acumulativas de mayor a menor: [4], [3,4], [2,3,4], [1,2,3,4]
-              const niveles = [
-                { value: '4', label: 'No puede ver materias de 4 UC', ucs: [4] },
-                { value: '3_y_4', label: 'No puede ver materias de 3 y 4 UC', ucs: [3, 4] },
-                { value: '2_3_y_4', label: 'No puede ver materias de 2, 3 y 4 UC', ucs: [2, 3, 4] },
-                { value: '1_2_3_y_4', label: 'No puede ver materias de 1, 2, 3 y 4 UC', ucs: [1, 2, 3, 4] },
+              const opciones = [
+                { value: '4', uc: 4, label: 'No puede ver materias de 4 UC' },
+                { value: '3', uc: 3, label: 'No puede ver materias de 3 UC' },
+                { value: '2', uc: 2, label: 'No puede ver materias de 2 UC' },
+                { value: '1', uc: 1, label: 'No puede ver materias de 1 UC' },
+                { value: 'todas', uc: null, label: 'No le quedan UC para ver otras materias' },
               ]
 
-              niveles.forEach(nivel => {
-                // Solo incluir esta opción si al menos UNA materia del estudiante
-                // tiene una UC que caiga en este rango de restricción
-                const aplica = ucsDelEstudiante.some(uc => nivel.ucs.includes(uc))
-                if (aplica) {
-                  opcionesDisponibles.push(nivel)
-                }
-              })
-
-              // Siempre agregar la opción de bloquear TODAS las materias
-              opcionesDisponibles.push({
-                value: 'todas',
-                label: 'No puede ver NINGUNA materia (bloquear todas)',
-                ucs: ucsDelEstudiante
-              })
-
               return (
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Restricción a aplicar:</label>
-              <select 
-                value={reglaUC} 
-                onChange={(e) => setReglaUC(e.target.value)}
-                className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="">-- Selecciona una restricción --</option>
-                {opcionesDisponibles.map(op => (
-                  <option key={op.value} value={op.value}>{op.label}</option>
-                ))}
-              </select>
-            </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Restricción a aplicar:</label>
+                  <select 
+                    value={reglaUC} 
+                    onChange={(e) => setReglaUC(e.target.value)}
+                    className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 font-medium"
+                  >
+                    <option value="">-- Selecciona una restricción --</option>
+                    {opciones.map(op => {
+                      let isDisabled = false
+                      let labelExtra = ''
+
+                      if (op.value !== 'todas') {
+                        if (ucContext !== null) {
+                          // Si hay materia en consulta, bloquear opciones de UC distintas a ucContext
+                          if (op.uc !== ucContext) {
+                            isDisabled = true
+                            labelExtra = ` (Bloqueado - La materia en consulta es de ${ucContext} UC)`
+                          }
+                        } else {
+                          // Si no hay materiaContext, bloquear UCs que el estudiante no haya solicitado
+                          const ucsEstudiante = estudiante.materiasSolicitadas.map(m => getUCForMateria(m.materia))
+                          if (!ucsEstudiante.includes(op.uc)) {
+                            isDisabled = true
+                            labelExtra = ` (Bloqueado - Sin materias de ${op.uc} UC)`
+                          }
+                        }
+                      }
+
+                      return (
+                        <option key={op.value} value={op.value} disabled={isDisabled}>
+                          {op.label}{labelExtra}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
               )
             })()}
 
@@ -250,7 +273,7 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                 value={razonRechazo}
                 onChange={(e) => setRazonRechazo(e.target.value)}
                 placeholder="Ej. Según tu expediente, no cuentas con las UC requeridas para inscribir materias de este nivel."
-                className="w-full text-sm p-2 border border-orange-200 rounded-lg h-20 resize-none focus:ring-2 focus:ring-orange-500"
+                className="w-full text-sm p-2 border border-orange-200 rounded-lg h-20 resize-none focus:ring-2 focus:ring-orange-500 font-medium"
               />
             </div>
 

@@ -1329,6 +1329,7 @@ function Admin() {
       {estudianteModal && (
         <ModalDetalleEstudiante
           estudiante={estudianteModal}
+          materiaContext={activeTab === 'listado_materia' ? materiaSeleccionadaDetalle : null}
           onClose={() => setEstudianteModal(null)}
         />
       )}
