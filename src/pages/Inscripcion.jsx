@@ -40,6 +40,46 @@ function Inscripcion() {
     return [...new Set(ids)]
   }
 
+  // Nombres de todas las prelaciones (directas e indirectas) de una materia.
+  const getPrelacionesNombres = (materiaNombre) => {
+    return getAllPrelacionesIds(materiaNombre).map(id => {
+      const obj = pensumMaterias.find(p => p.id === id)
+      return obj ? obj.nombre : id
+    })
+  }
+
+  // Materias que dependen de la indicada, es decir, aquellas que la tienen como
+  // prelación directa o indirecta (el sentido inverso de getPrelacionesNombres).
+  const getDependientesNombres = (materiaNombre) => {
+    return pensumMaterias
+      .filter(p => getPrelacionesNombres(p.nombre).includes(materiaNombre))
+      .map(p => p.nombre)
+  }
+
+  // Toda materia que esté en la misma cadena de prelación que la indicada, en
+  // ambos sentidos: sus prelaciones (hacia atrás) y las materias que la prelan
+  // (hacia adelante). Se usa para ocultar esas opciones en los desplegables.
+  const getMateriasEnCadena = (materiaNombre) => {
+    if (!materiaNombre) return []
+    return [...new Set([
+      ...getPrelacionesNombres(materiaNombre),
+      ...getDependientesNombres(materiaNombre)
+    ])]
+  }
+
+  // Opciones disponibles para un desplegable concreto: se excluyen las materias
+  // ya elegidas en otros campos y todas las que estén en su cadena de prelación.
+  const getOpcionesParaCampo = (index) => {
+    const otras = materiasSeleccionadas.filter((m, i) => i !== index && m && m.trim() !== '')
+    const bloqueadas = new Set()
+    otras.forEach(m => {
+      bloqueadas.add(m)
+      getMateriasEnCadena(m).forEach(nombre => bloqueadas.add(nombre))
+    })
+    // La materia ya elegida en este campo siempre debe seguir visible.
+    return materiasDisponibles.filter(m => m === materiasSeleccionadas[index] || !bloqueadas.has(m))
+  }
+
   // Validar si entre las materias seleccionadas hay alguna que prela a otra
   const findPrerequisiteConflict = (seleccionadasNombres) => {
     const validas = seleccionadasNombres.filter(m => m && m.trim() !== '')
@@ -337,6 +377,11 @@ function Inscripcion() {
                   <BookOpen className="w-4 h-4 mr-2 text-unet-blue" />
                   Materia(s) a Inscribir:
                 </label>
+                <p className="text-gray-500 text-xs -mt-2">
+                  Al elegir una materia se ocultarán automáticamente las que estén en su misma
+                  cadena de prelación (tanto sus prelaciones como las materias que dependen de ella),
+                  ya que no pueden cursarse en el mismo periodo.
+                </p>
 
                 {materiasSeleccionadas.map((materiaActual, idx) => (
                   <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -350,7 +395,7 @@ function Inscripcion() {
                       disabled={!inscripcionHabilitada}
                     >
                       <option value="">-- Selecciona una materia --</option>
-                      {materiasDisponibles.map((m, mIdx) => (
+                      {getOpcionesParaCampo(idx).map((m, mIdx) => (
                         <option key={mIdx} value={m}>
                           {m}
                         </option>
