@@ -50,6 +50,15 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
       if (reglaUC === '4') ucsProhibidas = [4]
       else if (reglaUC === '3_y_4') ucsProhibidas = [3, 4]
       else if (reglaUC === '2_3_y_4') ucsProhibidas = [2, 3, 4]
+      else if (reglaUC === '1_2_3_y_4') ucsProhibidas = [1, 2, 3, 4]
+      else if (reglaUC === 'todas') {
+        // Bloquear TODAS las materias: recopilar todas las UCs del estudiante
+        const todasLasUC = [...new Set(estudiante.materiasSolicitadas.map(m => {
+          const info = pensumMaterias.find(p => p.nombre === m.materia)
+          return info ? info.uc : -1
+        }).filter(uc => uc >= 0))]
+        ucsProhibidas = todasLasUC
+      }
     }
 
     const result = await rechazarEstudiante(estudiante, ucsProhibidas, razonRechazo, motivoRechazo)
@@ -178,7 +187,47 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
               </select>
             </div>
 
-            {motivoRechazo === 'exceso_uc' && (
+            {motivoRechazo === 'exceso_uc' && (() => {
+              // Calcular las UCs únicas de las materias que el estudiante solicitó
+              const ucsDelEstudiante = [...new Set(
+                estudiante.materiasSolicitadas
+                  .map(m => {
+                    const info = pensumMaterias.find(p => p.nombre === m.materia)
+                    return info ? info.uc : -1
+                  })
+                  .filter(uc => uc >= 0)
+              )].sort((a, b) => b - a) // Ordenar de mayor a menor
+
+              // Generar las opciones de restricción que realmente aplican al estudiante.
+              // Cada opción dice "No puede ver materias de X UC" y solo se muestra si
+              // al menos una materia solicitada cae en ese rango.
+              const opcionesDisponibles = []
+
+              // Opciones acumulativas de mayor a menor: [4], [3,4], [2,3,4], [1,2,3,4]
+              const niveles = [
+                { value: '4', label: 'No puede ver materias de 4 UC', ucs: [4] },
+                { value: '3_y_4', label: 'No puede ver materias de 3 y 4 UC', ucs: [3, 4] },
+                { value: '2_3_y_4', label: 'No puede ver materias de 2, 3 y 4 UC', ucs: [2, 3, 4] },
+                { value: '1_2_3_y_4', label: 'No puede ver materias de 1, 2, 3 y 4 UC', ucs: [1, 2, 3, 4] },
+              ]
+
+              niveles.forEach(nivel => {
+                // Solo incluir esta opción si al menos UNA materia del estudiante
+                // tiene una UC que caiga en este rango de restricción
+                const aplica = ucsDelEstudiante.some(uc => nivel.ucs.includes(uc))
+                if (aplica) {
+                  opcionesDisponibles.push(nivel)
+                }
+              })
+
+              // Siempre agregar la opción de bloquear TODAS las materias
+              opcionesDisponibles.push({
+                value: 'todas',
+                label: 'No puede ver NINGUNA materia (bloquear todas)',
+                ucs: ucsDelEstudiante
+              })
+
+              return (
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Restricción a aplicar:</label>
               <select 
@@ -187,12 +236,13 @@ export default function ModalDetalleEstudiante({ estudiante, onClose }) {
                 className="w-full text-sm p-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500"
               >
                 <option value="">-- Selecciona una restricción --</option>
-                <option value="4">No puede ver materias de 4 UC</option>
-                <option value="3_y_4">No puede ver materias de 3 y 4 UC</option>
-                <option value="2_3_y_4">No puede ver materias de 2, 3 y 4 UC</option>
+                {opcionesDisponibles.map(op => (
+                  <option key={op.value} value={op.value}>{op.label}</option>
+                ))}
               </select>
             </div>
-            )}
+              )
+            })()}
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Razón del rechazo (para el correo):</label>

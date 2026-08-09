@@ -457,7 +457,14 @@ export const InscripcionProvider = ({ children }) => {
     }
 
     const idsARechazar = materiasARechazar.map(m => m.id)
-    const estadoRechazo = motivo === 'bajo_indice' ? 'rojo' : 'anaranjado'
+    // Cada motivo tiene su propio color según la leyenda del panel:
+    // rojo = bajo índice, morado = choque de horario, anaranjado = exceso de UC.
+    const estadosPorMotivo = {
+      bajo_indice: 'rojo',
+      choque_horario: 'morado',
+      exceso_uc: 'anaranjado'
+    }
+    const estadoRechazo = estadosPorMotivo[motivo] || 'anaranjado'
 
     // 1. Actualizar en Supabase (solicitudes_materias)
     const { error } = await supabase
@@ -530,6 +537,24 @@ export const InscripcionProvider = ({ children }) => {
     } catch (err) {
       console.error("Error enviando correo de rechazo:", err)
       // Aunque falle el correo, el rechazo se procesó
+    }
+
+    // 5. Si el motivo es choque de horario, registrar en el historial de choques
+    // para que la pestaña "Historial de Choques" refleje este rechazo. Cuando el
+    // rechazo se hace desde el modal (ModalDetalleEstudiante) no pasa por
+    // resolverChoqueHorario(), por lo que hay que registrarlo aquí también.
+    if (motivo === 'choque_horario') {
+      for (const matRechazada of materiasARechazar) {
+        await registrarHistorialChoque({
+          cedula: solicitud.cedula,
+          nombre: solicitud.nombre,
+          materia: matRechazada.materia,
+          seccion_origen: '—',       // desde el modal no hay sección origen específica
+          seccion_destino: null,
+          transferido: false,
+          periodo: periodoActivo
+        })
+      }
     }
 
     return { success: true, count: materiasARechazar.length }
