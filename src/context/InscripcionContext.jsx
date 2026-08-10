@@ -1131,7 +1131,6 @@ export const InscripcionProvider = ({ children }) => {
         historialChoques,
         cambiarPeriodoActivo,
         agregarSolicitud,
-        agregarSeccion,
         limpiarDatosDelPeriodo,
         crearSeccion,
         eliminarSeccion,
