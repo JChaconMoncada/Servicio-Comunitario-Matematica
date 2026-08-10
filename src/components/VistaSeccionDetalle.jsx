@@ -680,10 +680,9 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           
           <button
             onClick={handleAprobarSeccion}
-            disabled={seccion.aprobada}
-            className={`flex items-center justify-center space-x-2 py-3.5 px-4 font-extrabold rounded-xl shadow-md transition-all ${
+            className={`flex items-center justify-center space-x-2 py-3.5 px-4 font-extrabold rounded-xl shadow-md transition-all cursor-pointer ${
               seccion.aprobada
-                ? 'bg-amber-100 text-amber-800 border-2 border-amber-300 cursor-default'
+                ? 'bg-amber-100 text-amber-800 border-2 border-amber-300 hover:bg-amber-200'
                 : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-lg'
             }`}
           >
