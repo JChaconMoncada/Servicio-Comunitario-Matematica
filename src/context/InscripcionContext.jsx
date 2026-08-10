@@ -934,6 +934,27 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, countChoquesReseteados: idsMorados.length }
   }
 
+  // Desbloquear sección
+  const desbloquearSeccion = async (seccionId) => {
+    try {
+      const { error } = await supabase
+        .from('secciones')
+        .update({ aprobada: false })
+        .eq('id', seccionId)
+        
+      if (error) throw error
+      
+      setSecciones(prev => prev.map(s => {
+        if (s.id !== seccionId) return s
+        return { ...s, aprobada: false }
+      }))
+      return { success: true }
+    } catch (err) {
+      console.error('Error al desbloquear:', err)
+      return { success: false }
+    }
+  }
+
   // Generar 60 solicitudes de prueba para una materia
   const generarDatosPrueba = async (materiaTarget = 'Matemática 1', cantidad = 60) => {
     const nombresDemo = [
@@ -1162,6 +1183,7 @@ export const InscripcionProvider = ({ children }) => {
         rechazarEstudiante,
         resolverChoqueHorario,
         aprobarSeccion,
+        desbloquearSeccion,
         eliminarSolicitudDeMateria,
         generarDatosPrueba,
         generarDatosPruebaGlobal,

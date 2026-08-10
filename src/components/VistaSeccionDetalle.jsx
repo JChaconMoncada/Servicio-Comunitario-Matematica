@@ -22,6 +22,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     rechazarEstudiante,
     resolverChoqueHorario,
     aprobarSeccion,
+    desbloquearSeccion,
     generarDatosPrueba,
     limpiarSeccion
   } = useInscripcion()
@@ -93,7 +94,14 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
   }
 
   const handleAprobarSeccion = async () => {
-    if (seccion?.aprobada) return
+    if (seccion?.aprobada) {
+      if (window.confirm(`¿Deseas DESBLOQUEAR la sección ${seccion.seccion} de ${seccion.materia}?\n\nLos estudiantes que ya recibieron correo no volverán a recibirlo si apruebas la sección nuevamente.`)) {
+        await desbloquearSeccion(seccion.id)
+        alert('Sección desbloqueada.')
+      }
+      return
+    }
+
     if (!window.confirm(`¿Estás seguro de APROBAR y CERRAR la Sección ${seccion.seccion} de ${seccion.materia}?\n\n- La sección quedará bloqueada con candado 🔒.\n- Los estudiantes con Choque de Horario (morado) de esta materia volverán a estar 'sin asignar' para ser colocados en otra sección.`)) {
       return
     }
@@ -134,6 +142,13 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
             import.meta.env.VITE_EMAILJS_PUBLIC_KEY
           )
           enviados++;
+          
+          // Marcar como notificado en BD para no repetir en caso de desbloqueo/bloqueo
+          await supabase
+            .from('secciones_estudiantes')
+            .update({ notificado: true })
+            .eq('id', est.id);
+            
         } catch (error) {
           console.error('Error enviando el correo a:', est.correo, error)
         }
