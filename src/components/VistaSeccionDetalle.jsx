@@ -185,8 +185,10 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
         },
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       );
+      // alert('✅ Notificación enviada correctamente al correo de ' + est.nombre);
     } catch (error) {
       console.error('Error enviando notificación individual a:', est.correo, error);
+      alert('❌ Error de EmailJS al intentar enviar el correo a ' + est.nombre + '.\nRevisa la consola F12 o asegúrate de no haber excedido el límite mensual gratuito.');
     } finally {
       setIsSendingEmails(false);
     }
