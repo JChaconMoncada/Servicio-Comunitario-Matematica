@@ -1148,6 +1148,7 @@ export const InscripcionProvider = ({ children }) => {
         eliminarSolicitudDeMateria,
         generarDatosPrueba,
         generarDatosPruebaGlobal,
+        refrescarDatos,
         loading
       }}
     >
