@@ -549,21 +549,9 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                               )
                             }
 
-                            // --- Dos botones principales (para estudiantes pendientes) ---
+                            // --- Un solo botón (para estudiantes pendientes) ---
                             return (
                               <div className="flex items-center justify-center gap-2">
-                                <button
-                                  onClick={async (e) => { 
-                                    e.stopPropagation(); 
-                                    await enviarNotificacionIndividual(est, null);
-                                    marcarVerificado(seccion.id, index, true); 
-                                  }}
-                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold shadow transition-all whitespace-nowrap disabled:opacity-50"
-                                  title="Inscrito"
-                                  disabled={isSendingEmails}
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5 mr-1" /> Inscrito
-                                </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setFilaExpandida(index); }}
                                   className="inline-flex items-center justify-center py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow transition-all whitespace-nowrap disabled:opacity-50"
