@@ -3,6 +3,12 @@ import { Plus, Minus, CheckCircle, UserX, FileDown, Mail, RefreshCw, ArrowLeft, 
 import emailjs from '@emailjs/browser'
 import { useInscripcion } from '../context/InscripcionContext'
 import { pensumMaterias } from '../data/pensum'
+import { Search } from 'lucide-react'
+
+const normalizeString = (str) => {
+  if (!str) return '';
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+};
 
 export default function VistaSeccionDetalle({ seccionId, onVolver }) {
   const {
@@ -24,6 +30,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
   const [emailNotice, setEmailNotice] = useState(null)
   const [isSendingEmails, setIsSendingEmails] = useState(false)
   const [isGenerandoDemo, setIsGenerandoDemo] = useState(false)
+  const [searchEstudianteSeccion, setSearchEstudianteSeccion] = useState('')
   // Índice de la fila cuyo menú de "No se puede inscribir" está desplegado
   const [filaExpandida, setFilaExpandida] = useState(null)
 
@@ -312,12 +319,24 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
       )}
 
       {/* Botón + para agregar fila/cupo adicional (Página 6 y 7) */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden">
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <span className="font-bold text-gray-800">Listado de Inscritos en la Sección</span>
-          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-500">
-            (Haz clic en una fila para seleccionarla)
-          </span>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm print:hidden gap-4">
+        <div className="flex flex-col space-y-2 w-full md:w-auto">
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <span className="font-bold text-gray-800">Listado de Inscritos en la Sección</span>
+            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-500">
+              (Haz clic en una fila para seleccionarla)
+            </span>
+          </div>
+          <div className="relative w-full md:w-64">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Buscar estudiante..."
+              value={searchEstudianteSeccion}
+              onChange={(e) => setSearchEstudianteSeccion(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-unet-blue text-sm"
+            />
+          </div>
         </div>
         {!seccion.aprobada && (
           <div className="flex items-center space-x-2">
@@ -364,6 +383,23 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
             <tbody className="divide-y divide-gray-200 text-sm">
               {Array.from({ length: seccion.capacidadMax }).map((_, index) => {
                 const est = seccion.estudiantes[index]
+                
+                // Si hay búsqueda activa, filtramos. Si no coincide y no está vacía la fila, retornamos null.
+                if (searchEstudianteSeccion.trim() !== '') {
+                  const term = normalizeString(searchEstudianteSeccion);
+                  if (est && est.cedula && est.nombre && est.correo) {
+                    if (
+                      !normalizeString(est.cedula).includes(term) && 
+                      !normalizeString(est.nombre).includes(term) && 
+                      !normalizeString(est.correo).includes(term)
+                    ) {
+                      return null;
+                    }
+                  } else {
+                    return null; // Ocultar cupos vacíos cuando se está buscando
+                  }
+                }
+
                 const isSelected = selectedRows.includes(index)
 
                 return (

@@ -10,6 +10,13 @@ import { departamentoSubjects } from '../data/subjects'
 import { useInscripcion } from '../context/InscripcionContext'
 import ModalDetalleEstudiante from '../components/ModalDetalleEstudiante'
 import VistaSeccionDetalle from '../components/VistaSeccionDetalle'
+import Header from '../components/Header'
+import Footer from '../components/Footer'
+
+const normalizeString = (str) => {
+  if (!str) return '';
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+};
 
 function Admin() {
   // Sesión y pestaña activa se persisten en sessionStorage para que sobrevivan a
@@ -712,17 +719,17 @@ function Admin() {
                   {/* Grilla de Hojas de Cálculo por Materia (Vista de Página 2) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {Object.keys(materiasHabilitadas)
-                      .filter(m => materiasHabilitadas[m] && m.toLowerCase().includes(searchInscriptosMateria.toLowerCase()))
+                      .filter(m => materiasHabilitadas[m] && normalizeString(m).includes(normalizeString(searchInscriptosMateria)))
                       .map((materiaNombre, idx) => {
                       let filtrados = solicitudesDelPeriodo.filter(s => s.materiasSolicitadas.some(m => m.materia === materiaNombre))
                       
                       // Filtrado adicional si se está buscando un estudiante específico
                       if (searchEstudianteGlobal.trim() !== '') {
-                        const term = searchEstudianteGlobal.toLowerCase().trim()
+                        const term = normalizeString(searchEstudianteGlobal);
                         filtrados = filtrados.filter(est => 
-                          est.cedula.toLowerCase().includes(term) || 
-                          est.correo.toLowerCase().includes(term) ||
-                          est.nombre.toLowerCase().includes(term)
+                          normalizeString(est.cedula).includes(term) || 
+                          normalizeString(est.correo).includes(term) ||
+                          normalizeString(est.nombre).includes(term)
                         )
                       }
                       
@@ -872,11 +879,11 @@ function Admin() {
                             .filter(s => s.materiasSolicitadas.some(m => m.materia === materiaSeleccionadaDetalle))
                             .filter(s => {
                               if (searchEstudianteGlobal.trim() === '') return true;
-                              const term = searchEstudianteGlobal.toLowerCase().trim();
+                              const term = normalizeString(searchEstudianteGlobal);
                               return (
-                                s.cedula.toLowerCase().includes(term) || 
-                                s.correo.toLowerCase().includes(term) ||
-                                s.nombre.toLowerCase().includes(term)
+                                normalizeString(s.cedula).includes(term) || 
+                                normalizeString(s.correo).includes(term) ||
+                                normalizeString(s.nombre).includes(term)
                               );
                             })
                             .map((sol, index) => {
