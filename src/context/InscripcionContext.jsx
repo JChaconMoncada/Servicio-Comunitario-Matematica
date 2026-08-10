@@ -32,6 +32,19 @@ export const InscripcionProvider = ({ children }) => {
   const refrescarDatos = async () => {
     setLoading(true)
     try {
+      // Cargar configuración global
+      const { data: configData, error: configError } = await supabase
+        .from('configuracion')
+        .select('*')
+      
+      if (!configError && configData) {
+        const pActivo = configData.find(c => c.clave === 'periodoActivo')
+        if (pActivo) setPeriodoActivo(JSON.parse(pActivo.valor))
+        
+        const iHabilitada = configData.find(c => c.clave === 'inscripcionHabilitada')
+        if (iHabilitada) setInscripcionHabilitada(JSON.parse(iHabilitada.valor))
+      }
+
       // Cargar secciones
       const { data: seccionesData, error: seccionesError } = await supabase
         .from('secciones')
@@ -118,8 +131,35 @@ export const InscripcionProvider = ({ children }) => {
     refrescarDatos()
   }, [])
 
-  const toggleInscripciones = () => {
-    setInscripcionHabilitada(!inscripcionHabilitada)
+  const toggleInscripciones = async () => {
+    const nuevo = !inscripcionHabilitada
+    setInscripcionHabilitada(nuevo)
+    await supabase.from('configuracion').upsert({ clave: 'inscripcionHabilitada', valor: JSON.stringify(nuevo) }, { onConflict: 'clave' })
+  }
+
+  const cambiarPeriodoActivo = async (nuevoPeriodo) => {
+    if (!nuevoPeriodo || nuevoPeriodo.trim() === '') return
+    setPeriodoActivo(nuevoPeriodo)
+    await supabase.from('configuracion').upsert({ clave: 'periodoActivo', valor: JSON.stringify(nuevoPeriodo) }, { onConflict: 'clave' })
+  }
+
+  const limpiarDatosDelPeriodo = async (periodo) => {
+    const solicitudesDelPeriodo = solicitudes.filter(s => s.periodo === periodo)
+    const cedulas = solicitudesDelPeriodo.map(s => s.cedula)
+
+    if (cedulas.length > 0) {
+      // Separar en lotes de 200 para evitar límites de la URL en la petición REST
+      for (let i = 0; i < cedulas.length; i += 200) {
+        const lote = cedulas.slice(i, i + 200)
+        await supabase.from('secciones_estudiantes').delete().in('cedula', lote)
+      }
+    }
+
+    await supabase.from('solicitudes').delete().eq('periodo', periodo)
+    await supabase.from('historial_choques_horario').delete().eq('periodo', periodo)
+
+    await refrescarDatos()
+    return { success: true }
   }
 
   const toggleMateria = async (materia) => {
@@ -1089,7 +1129,10 @@ export const InscripcionProvider = ({ children }) => {
         solicitudes,
         secciones,
         historialChoques,
+        cambiarPeriodoActivo,
         agregarSolicitud,
+        agregarSeccion,
+        limpiarDatosDelPeriodo,
         crearSeccion,
         eliminarSeccion,
         cargarEstudiantesASeccion,
@@ -1105,7 +1148,6 @@ export const InscripcionProvider = ({ children }) => {
         eliminarSolicitudDeMateria,
         generarDatosPrueba,
         generarDatosPruebaGlobal,
-        refrescarDatos,
         loading
       }}
     >

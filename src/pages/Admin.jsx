@@ -92,7 +92,7 @@ function Admin() {
 
   const { 
     periodoActivo,
-    setPeriodoActivo,
+    cambiarPeriodoActivo,
     inscripcionHabilitada, 
     toggleInscripciones, 
     materiasHabilitadas, 
@@ -105,8 +105,15 @@ function Admin() {
     eliminarSeccion,
     generarDatosPruebaGlobal,
     autocompletarTodasLasSecciones,
-    refrescarDatos
+    refrescarDatos,
+    limpiarDatosDelPeriodo
   } = useInscripcion()
+
+  // Extraer los periodos existentes en la base de datos para autocompletar
+  const periodosDisponibles = [...new Set(solicitudes.map(s => s.periodo))].filter(Boolean)
+  if (!periodosDisponibles.includes('Semestre 2026-1')) periodosDisponibles.push('Semestre 2026-1')
+  if (!periodosDisponibles.includes('Semestre 2026-2')) periodosDisponibles.push('Semestre 2026-2')
+  if (!periodosDisponibles.includes('Intensivo 2026')) periodosDisponibles.push('Intensivo 2026')
 
   // Solo las solicitudes del periodo académico actualmente seleccionado
   const solicitudesDelPeriodo = solicitudes.filter(s => s.periodo === periodoActivo)
@@ -504,15 +511,21 @@ function Admin() {
                     </div>
                   </div>
 
-                  <select
-                    value={periodoActivo}
-                    onChange={(e) => setPeriodoActivo(e.target.value)}
-                    className="px-4 py-3 font-bold text-unet-blue bg-blue-50 border-2 border-unet-blue rounded-xl focus:ring-2 focus:ring-unet-blue text-sm"
-                  >
-                    <option value="Semestre 2026-1">Semestre 2026-1</option>
-                    <option value="Semestre 2026-2">Semestre 2026-2</option>
-                    <option value="Intensivo 2026">Intensivo 2026</option>
-                  </select>
+                  <div className="flex flex-col relative w-full sm:w-64">
+                    <input
+                      type="text"
+                      list="lista-periodos"
+                      value={periodoActivo}
+                      onChange={(e) => cambiarPeriodoActivo(e.target.value)}
+                      className="px-4 py-3 font-bold text-unet-blue bg-blue-50 border-2 border-unet-blue rounded-xl focus:ring-2 focus:ring-unet-blue text-sm w-full"
+                      placeholder="Ej. Semestre 2027-1"
+                    />
+                    <datalist id="lista-periodos">
+                      {periodosDisponibles.map((p, i) => (
+                        <option key={i} value={p} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
               </div>
 
@@ -595,6 +608,39 @@ function Admin() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* ZONA DE PELIGRO: Limpiar Base de Datos */}
+              <div className="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-200 mt-8">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-start">
+                    <Trash2 className="w-10 h-10 text-red-600 mr-4 flex-shrink-0" />
+                    <div>
+                      <h2 className="text-xl font-bold text-red-700">Limpiar Datos del Periodo</h2>
+                      <p className="text-red-600/80 text-sm mt-1 max-w-xl">
+                        Esta acción eliminará <strong>permanentemente</strong> a todos los estudiantes (solicitudes e historial) que pertenezcan al periodo activo actual (<span className="font-bold">{periodoActivo}</span>). Las secciones creadas se mantendrán, pero quedarán vacías. Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const confirmacion = window.prompt(`Para confirmar que deseas borrar TODOS los estudiantes del periodo "${periodoActivo}", escribe la palabra ELIMINAR en mayúsculas:`)
+                      if (confirmacion === 'ELIMINAR') {
+                        limpiarDatosDelPeriodo(periodoActivo).then(() => {
+                          alert(`Se han borrado los datos del periodo ${periodoActivo} exitosamente.`)
+                        }).catch(e => {
+                          alert("Hubo un error al borrar los datos: " + e.message)
+                        })
+                      } else if (confirmacion !== null) {
+                        alert("Palabra incorrecta. Operación cancelada.")
+                      }
+                    }}
+                    className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-sm transition-all whitespace-nowrap flex items-center"
+                  >
+                    <Trash2 className="w-5 h-5 mr-2" />
+                    Limpiar {periodoActivo}
+                  </button>
                 </div>
               </div>
 
