@@ -100,7 +100,7 @@ function Admin() {
     solicitudes,
     secciones,
     historialChoques,
-    eliminarSolicitudCompleta,
+    eliminarSolicitudDeMateria,
     crearSeccion,
     eliminarSeccion,
     generarDatosPruebaGlobal,
@@ -901,8 +901,13 @@ function Admin() {
                                       </button>
                                       <button
                                         onClick={async () => {
-                                          if (window.confirm(`¿Estás seguro de que deseas ELIMINAR COMPLETAMENTE a ${sol.nombre} del sistema para este periodo? Se borrará su solicitud de todas las materias a las que haya intentado ingresar para que pueda volver a intentarlo desde cero. Esta acción no se puede deshacer.`)) {
-                                            await eliminarSolicitudCompleta(sol.id)
+                                          const esUltima = sol.materiasSolicitadas.length === 1;
+                                          const msj = esUltima 
+                                            ? `¿Estás seguro de que deseas ELIMINAR a ${sol.nombre} de la demanda de ${materiaSeleccionadaDetalle}? Al ser su única materia, se borrará su solicitud completa del sistema para que pueda inscribirse de nuevo si lo desea.`
+                                            : `¿Estás seguro de que deseas ELIMINAR a ${sol.nombre} de la demanda de ${materiaSeleccionadaDetalle}? Aún mantendrá su solicitud en las otras materias.`;
+                                          
+                                          if (window.confirm(msj)) {
+                                            await eliminarSolicitudDeMateria(sol.id, materiaSeleccionadaDetalle)
                                           }
                                         }}
                                         className="p-2 bg-red-100 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"

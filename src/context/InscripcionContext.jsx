@@ -1060,27 +1060,50 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, count: solData.length }
   }
 
-  // Eliminar definitivamente a un estudiante (y todas sus materias solicitadas)
-  const eliminarSolicitudCompleta = async (solicitudId) => {
+  // Eliminar a un estudiante de una materia. Si es su última materia, se elimina toda su solicitud.
+  const eliminarSolicitudDeMateria = async (solicitudId, materiaNombre) => {
     const sol = solicitudes.find(s => s.id === solicitudId)
     if (!sol) return { success: false, error: 'Solicitud no encontrada' }
 
-    // 1. Eliminar de Supabase (la tabla solicitudes tiene CASCADE a solicitudes_materias)
-    const { error } = await supabase
-      .from('solicitudes')
-      .delete()
-      .eq('id', solicitudId)
+    const mat = sol.materiasSolicitadas.find(m => m.materia === materiaNombre)
+    if (!mat) return { success: false, error: 'Materia no encontrada en la solicitud' }
 
-    if (error) {
-      console.error("Error eliminando la solicitud:", error)
-      return { success: false, error: error.message }
+    if (sol.materiasSolicitadas.length === 1) {
+      // 1. Es su última materia, eliminamos la solicitud completa
+      const { error } = await supabase
+        .from('solicitudes')
+        .delete()
+        .eq('id', solicitudId)
+
+      if (error) {
+        console.error("Error eliminando la solicitud completa:", error)
+        return { success: false, error: error.message }
+      }
+
+      // 2. Lo quitamos totalmente del estado local
+      setSolicitudes(prev => prev.filter(s => s.id !== solicitudId))
+    } else {
+      // 1. Tiene más materias, solo lo quitamos de ESTA materia
+      const { error } = await supabase
+        .from('solicitudes_materias')
+        .delete()
+        .eq('id', mat.id)
+
+      if (error) {
+        console.error("Error eliminando solicitud de materia:", error)
+        return { success: false, error: error.message }
+      }
+
+      // 2. Actualizamos el estado local quitando solo esa materia
+      setSolicitudes(prev => prev.map(s => {
+        if (s.id !== solicitudId) return s
+        return {
+          ...s,
+          materiasSolicitadas: s.materiasSolicitadas.filter(m => m.id !== mat.id)
+        }
+      }))
     }
 
-    // 2. Actualizar estado local eliminando toda la solicitud
-    setSolicitudes(prev => prev.filter(s => s.id !== solicitudId))
-
-    // 3. (Opcional) Si queremos limpiar la solicitud completa cuando se queda sin materias, 
-    // lo haríamos aquí, pero por ahora conservamos sus datos generales.
     return { success: true }
   }
 
@@ -1113,7 +1136,7 @@ export const InscripcionProvider = ({ children }) => {
         rechazarEstudiante,
         resolverChoqueHorario,
         aprobarSeccion,
-        eliminarSolicitudCompleta,
+        eliminarSolicitudDeMateria,
         generarDatosPrueba,
         generarDatosPruebaGlobal,
         refrescarDatos,
