@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS secciones_estudiantes (
   cedula TEXT NOT NULL,
   correo TEXT NOT NULL,
   verificado BOOLEAN DEFAULT false,
+  notificado BOOLEAN DEFAULT false,
   UNIQUE(seccion_id, cedula)
 );
 
@@ -87,3 +88,4 @@ CREATE TABLE IF NOT EXISTS historial_choques_horario (
 ALTER TABLE secciones ADD COLUMN IF NOT EXISTS horario TEXT;
 ALTER TABLE secciones ADD COLUMN IF NOT EXISTS aprobada BOOLEAN DEFAULT false;
 ALTER TABLE historial_choques_horario ADD COLUMN IF NOT EXISTS horario TEXT;
+ALTER TABLE secciones_estudiantes ADD COLUMN IF NOT EXISTS notificado BOOLEAN DEFAULT false;
