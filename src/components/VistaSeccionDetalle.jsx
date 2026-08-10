@@ -121,7 +121,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
       }
 
       for (let est of seccion.estudiantes) {
-        if (!est || !est.correo) continue;
+        if (!est || !est.correo || est.notificado) continue; // <-- Saltar si ya fue notificado
         try {
           await emailjs.send(
             import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -155,6 +155,40 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
       alert(`¡Éxito! Se han creado ${res.count} solicitudes de prueba para "${seccion.materia}". Ahora puedes hacer clic en 'Autocompletar Sección'.`)
     } else {
       alert(res.error || 'Error creando datos de prueba')
+    }
+  }
+
+  const enviarNotificacionIndividual = async (est, tipoRechazo = null) => {
+    if (!est || !est.correo) return;
+    setIsSendingEmails(true);
+    try {
+      let mensaje = '';
+      if (!tipoRechazo) {
+        const horario = seccion.horario && seccion.horario.trim() !== '' ? seccion.horario : 'Por definir';
+        mensaje = `Has sido inscrito correctamente para la materia ${seccion.materia}, sección ${seccion.seccion}, ${seccion.aula}, con el profesor ${seccion.profesor}.`;
+        if (seccion.modalidad === 'Virtual') {
+          mensaje += ` Las clases se impartirán en modalidad Virtual.`;
+        } else {
+          mensaje += ` Las clases serán en el siguiente horario: ${horario}.`;
+        }
+      } else {
+        mensaje = `Tu solicitud de inscripción para la materia ${seccion.materia} ha sido RECHAZADA. Motivo: ${tipoRechazo}`;
+      }
+
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          destinatario: est.correo,
+          mensaje: mensaje,
+          message: mensaje,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+    } catch (error) {
+      console.error('Error enviando notificación individual a:', est.correo, error);
+    } finally {
+      setIsSendingEmails(false);
     }
   }
 
@@ -448,6 +482,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                                       onClick={async () => {
                                         if (!sol) return
                                         if (window.confirm(`¿Rechazar a ${est.nombre} por Exceso de UC para materias de ${uc} UC? Se eliminará de esta lista.`)) {
+                                          await enviarNotificacionIndividual(est, 'Exceso de UC');
                                           await rechazarEstudiante(sol, [uc], `Rechazado por exceso de UC para materias de ${uc} UC en la materia ${seccion.materia}.`, 'exceso_uc', seccion.id, index)
                                           setFilaExpandida(null)
                                         }
@@ -458,9 +493,11 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                                       UC
                                     </button>
                                     <button
-                                      onClick={async () => {
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
                                         if (window.confirm(`¿Rechazar a ${est.nombre} por Bajo Índice para materias de ${uc} UC? Se eliminará de esta lista.`)) {
                                           if (!sol) return
+                                          await enviarNotificacionIndividual(est, 'Bajo Índice Académico');
                                           await rechazarEstudiante(sol, [uc], `Rechazado por bajo índice académico para materias de ${uc} UC en la materia ${seccion.materia}.`, 'bajo_indice', seccion.id, index)
                                           setFilaExpandida(null)
                                         }
@@ -514,16 +551,22 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                             return (
                               <div className="flex items-center justify-center gap-2">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); marcarVerificado(seccion.id, index); }}
-                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold shadow transition-all whitespace-nowrap"
+                                  onClick={async (e) => { 
+                                    e.stopPropagation(); 
+                                    await enviarNotificacionIndividual(est, null);
+                                    marcarVerificado(seccion.id, index, true); 
+                                  }}
+                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold shadow transition-all whitespace-nowrap disabled:opacity-50"
                                   title="Inscrito"
+                                  disabled={isSendingEmails}
                                 >
                                   <CheckCircle className="w-3.5 h-3.5 mr-1" /> Inscrito
                                 </button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setFilaExpandida(index); }}
-                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow transition-all whitespace-nowrap"
+                                  className="inline-flex items-center justify-center py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow transition-all whitespace-nowrap disabled:opacity-50"
                                   title="No se puede inscribir"
+                                  disabled={isSendingEmails}
                                 >
                                   <UserX className="w-3.5 h-3.5 mr-1" /> No se puede <ChevronDown className="w-3 h-3 ml-0.5" />
                                 </button>

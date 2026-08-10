@@ -421,19 +421,34 @@ export const InscripcionProvider = ({ children }) => {
   }
 
   // Marcar fila de estudiante como verificado (Verde en la lista)
-  const marcarVerificado = async (seccionId, indexEstudiante) => {
+  const marcarVerificado = async (seccionId, indexEstudiante, enviarNotificado = false) => {
     const sec = secciones.find(s => s.id === seccionId)
     if (!sec) return
     
     const estudiante = sec.estudiantes[indexEstudiante]
     if (!estudiante) return
 
+    const updateData = { verificado: true }
+    if (enviarNotificado) {
+      updateData.notificado = true
+    }
+
     // Actualizar en Supabase
     if (estudiante.id) {
-      await supabase
+      const { error } = await supabase
         .from('secciones_estudiantes')
-        .update({ verificado: true })
+        .update(updateData)
         .eq('id', estudiante.id)
+        
+      // Si la columna 'notificado' no existe, fallará con un error específico de Postgres.
+      // Hacemos un fallback actualizando solo 'verificado' por si el usuario no ha añadido la columna aún.
+      if (error && error.code) {
+        console.warn('Error al actualizar notificado (posiblemente falta la columna). Haciendo fallback a verificado...', error)
+        await supabase
+          .from('secciones_estudiantes')
+          .update({ verificado: true })
+          .eq('id', estudiante.id)
+      }
     }
 
     // Actualizar estado local
@@ -441,6 +456,9 @@ export const InscripcionProvider = ({ children }) => {
       if (s.id !== seccionId) return s
       const copy = [...s.estudiantes]
       copy[indexEstudiante] = { ...copy[indexEstudiante], verificado: true }
+      if (enviarNotificado) {
+        copy[indexEstudiante].notificado = true
+      }
       return { ...s, estudiantes: copy }
     }))
 
