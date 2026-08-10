@@ -92,7 +92,7 @@ function Admin() {
 
   const { 
     periodoActivo,
-    cambiarPeriodoActivo,
+    setPeriodoActivo,
     inscripcionHabilitada, 
     toggleInscripciones, 
     materiasHabilitadas, 
@@ -108,12 +108,6 @@ function Admin() {
     refrescarDatos,
     limpiarDatosDelPeriodo
   } = useInscripcion()
-
-  // Extraer los periodos existentes en la base de datos para autocompletar
-  const periodosDisponibles = [...new Set(solicitudes.map(s => s.periodo))].filter(Boolean)
-  if (!periodosDisponibles.includes('Semestre 2026-1')) periodosDisponibles.push('Semestre 2026-1')
-  if (!periodosDisponibles.includes('Semestre 2026-2')) periodosDisponibles.push('Semestre 2026-2')
-  if (!periodosDisponibles.includes('Intensivo 2026')) periodosDisponibles.push('Intensivo 2026')
 
   // Solo las solicitudes del periodo académico actualmente seleccionado
   const solicitudesDelPeriodo = solicitudes.filter(s => s.periodo === periodoActivo)
@@ -511,21 +505,15 @@ function Admin() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col relative w-full sm:w-64">
-                    <input
-                      type="text"
-                      list="lista-periodos"
-                      value={periodoActivo}
-                      onChange={(e) => cambiarPeriodoActivo(e.target.value)}
-                      className="px-4 py-3 font-bold text-unet-blue bg-blue-50 border-2 border-unet-blue rounded-xl focus:ring-2 focus:ring-unet-blue text-sm w-full"
-                      placeholder="Ej. Semestre 2027-1"
-                    />
-                    <datalist id="lista-periodos">
-                      {periodosDisponibles.map((p, i) => (
-                        <option key={i} value={p} />
-                      ))}
-                    </datalist>
-                  </div>
+                  <select
+                    value={periodoActivo}
+                    onChange={(e) => setPeriodoActivo(e.target.value)}
+                    className="px-4 py-2 border-2 border-unet-blue rounded-xl text-unet-blue font-bold bg-blue-50 focus:ring-2 focus:ring-unet-blue"
+                  >
+                    <option value="Semestre 2026-1">Semestre 2026-1</option>
+                    <option value="Semestre 2026-2">Semestre 2026-2</option>
+                    <option value="Intensivo 2026">Intensivo 2026</option>
+                  </select>
                 </div>
               </div>
 

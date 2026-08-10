@@ -32,19 +32,6 @@ export const InscripcionProvider = ({ children }) => {
   const refrescarDatos = async () => {
     setLoading(true)
     try {
-      // Cargar configuración global
-      const { data: configData, error: configError } = await supabase
-        .from('configuracion')
-        .select('*')
-      
-      if (!configError && configData) {
-        const pActivo = configData.find(c => c.clave === 'periodoActivo')
-        if (pActivo) setPeriodoActivo(JSON.parse(pActivo.valor))
-        
-        const iHabilitada = configData.find(c => c.clave === 'inscripcionHabilitada')
-        if (iHabilitada) setInscripcionHabilitada(JSON.parse(iHabilitada.valor))
-      }
-
       // Cargar secciones
       const { data: seccionesData, error: seccionesError } = await supabase
         .from('secciones')
@@ -131,16 +118,8 @@ export const InscripcionProvider = ({ children }) => {
     refrescarDatos()
   }, [])
 
-  const toggleInscripciones = async () => {
-    const nuevo = !inscripcionHabilitada
-    setInscripcionHabilitada(nuevo)
-    await supabase.from('configuracion').upsert({ clave: 'inscripcionHabilitada', valor: JSON.stringify(nuevo) }, { onConflict: 'clave' })
-  }
-
-  const cambiarPeriodoActivo = async (nuevoPeriodo) => {
-    if (!nuevoPeriodo || nuevoPeriodo.trim() === '') return
-    setPeriodoActivo(nuevoPeriodo)
-    await supabase.from('configuracion').upsert({ clave: 'periodoActivo', valor: JSON.stringify(nuevoPeriodo) }, { onConflict: 'clave' })
+  const toggleInscripciones = () => {
+    setInscripcionHabilitada(!inscripcionHabilitada)
   }
 
   const limpiarDatosDelPeriodo = async (periodo) => {
@@ -1129,7 +1108,6 @@ export const InscripcionProvider = ({ children }) => {
         solicitudes,
         secciones,
         historialChoques,
-        cambiarPeriodoActivo,
         agregarSolicitud,
         limpiarDatosDelPeriodo,
         crearSeccion,
