@@ -377,7 +377,7 @@ function Admin() {
 
   // Filtrado de secciones para la Vista de Estado de las Sesiones (Página 5)
   const seccionesFiltradas = secciones.filter(sec => {
-    const coincideBusqueda = sec.materia.toLowerCase().includes(searchMateria.toLowerCase())
+    const coincideBusqueda = normalizeString(sec.materia).includes(normalizeString(searchMateria))
     if (filtroModalidad === 'Presenciales') return coincideBusqueda && sec.modalidad === 'Presencial'
     if (filtroModalidad === 'Virtuales') return coincideBusqueda && sec.modalidad === 'Virtual'
     return coincideBusqueda
