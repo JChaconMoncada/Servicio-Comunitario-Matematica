@@ -61,7 +61,8 @@ export const InscripcionProvider = ({ children }) => {
             nombre: e.nombre,
             cedula: e.cedula,
             correo: e.correo,
-            verificado: e.verificado
+            verificado: e.verificado,
+            notificado: e.notificado || false
           }))
         }
       })
@@ -384,7 +385,8 @@ export const InscripcionProvider = ({ children }) => {
       nombre: e.nombre,
       cedula: e.cedula,
       correo: e.correo,
-      verificado: e.verificado
+      verificado: e.verificado,
+      notificado: e.notificado || false
     }))
 
     setSecciones(prev => prev.map(s => {
