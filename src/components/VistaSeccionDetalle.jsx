@@ -16,7 +16,8 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
     rechazarEstudiante,
     resolverChoqueHorario,
     aprobarSeccion,
-    generarDatosPrueba
+    generarDatosPrueba,
+    limpiarSeccion
   } = useInscripcion()
 
   const [selectedRows, setSelectedRows] = useState([])
@@ -47,6 +48,18 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
 
   const handleAutocompletar = () => {
     autocompletarSeccion(seccion.id)
+  }
+
+  const handleLimpiarSeccion = async () => {
+    if (seccion?.aprobada) return
+    if (!window.confirm(`¿Estás seguro de LIMPIAR esta sección? Esto eliminará a todos los estudiantes asignados actualmente a esta sección y volverán a estar pendientes para ser asignados en otras secciones.`)) return
+    
+    const res = await limpiarSeccion(seccion.id)
+    if (res.success) {
+      alert('Sección limpiada exitosamente.')
+    } else {
+      alert(res.error || 'Ocurrió un error al limpiar la sección.')
+    }
   }
 
 
@@ -80,7 +93,47 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
 
     const res = await aprobarSeccion(seccion.id)
     if (res.success) {
-      alert(`¡Sección Aprobada y Bloqueada! 🔒\n\nSe han reseteado ${res.countChoquesReseteados} estudiante(s) con Choque de Horario a estado 'sin asignar' para ser ubicados en otras secciones.`)
+      alert(`¡Sección Aprobada y Bloqueada! 🔒\n\nSe han reseteado ${res.countChoquesReseteados} estudiante(s) con Choque de Horario a estado 'sin asignar'. A continuación se enviarán los correos a los inscritos.`)
+      
+      // Enviar correos a todos automáticamente
+      setIsSendingEmails(true)
+      let enviados = 0;
+      const horario = seccion.horario && seccion.horario.trim() !== '' ? seccion.horario : 'Por definir';
+      
+      const mensajeAdicional = window.prompt("¿Deseas agregar un mensaje adicional al correo? (Opcional)", "") || "";
+      let mensaje = `Has sido inscrito correctamente para la materia ${seccion.materia}, sección ${seccion.seccion}, ${seccion.aula}, con el profesor ${seccion.profesor}.`;
+      
+      if (seccion.modalidad === 'Virtual') {
+        mensaje += ` Las clases se impartirán en modalidad Virtual.`;
+      } else {
+        mensaje += ` Las clases serán en el siguiente horario: ${horario}.`;
+      }
+
+      if (mensajeAdicional.trim() !== '') {
+        mensaje += `\n\nNota de la administración:\n${mensajeAdicional.trim()}`;
+      }
+
+      for (let est of seccion.estudiantes) {
+        if (!est || !est.correo) continue;
+        try {
+          await emailjs.send(
+            import.meta.env.VITE_EMAILJS_SERVICE_ID,
+            import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+            {
+              destinatario: est.correo,
+              mensaje: mensaje,
+              message: mensaje,
+            },
+            import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+          )
+          enviados++;
+        } catch (error) {
+          console.error('Error enviando el correo a:', est.correo, error)
+        }
+      }
+      setIsSendingEmails(false)
+      alert(`Se han marcado a todos los estudiantes de la sección como verificados y se enviaron correos a ${enviados} estudiantes de manera automática.`)
+
     } else {
       alert(res.error || 'Error al aprobar la sección')
     }
@@ -136,20 +189,33 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
 
     setIsSendingEmails(true)
     let enviados = 0;
-    const mensaje = `Has sido inscrito correctamente para la materia ${seccion.materia}, sección ${seccion.seccion}, ${seccion.aula}, con el profesor ${seccion.profesor}`
+    const horario = seccion.horario && seccion.horario.trim() !== '' ? seccion.horario : 'Por definir';
+    
+    const mensajeAdicional = window.prompt("¿Deseas agregar un mensaje adicional al correo? (Opcional)", "") || "";
+    let mensaje = `Has sido inscrito correctamente para la materia ${seccion.materia}, sección ${seccion.seccion}, ${seccion.aula}, con el profesor ${seccion.profesor}.`;
+    
+    if (seccion.modalidad === 'Virtual') {
+      mensaje += ` Las clases se impartirán en modalidad Virtual.`;
+    } else {
+      mensaje += ` Las clases serán en el siguiente horario: ${horario}.`;
+    }
+
+    if (mensajeAdicional.trim() !== '') {
+      mensaje += `\n\nNota de la administración:\n${mensajeAdicional.trim()}`;
+    }
 
     for (let idx of selectedRows) {
       const est = seccion.estudiantes[idx]
       try {
         await emailjs.send(
-          'service_omar_angola',
-          'template_UNET',
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
           {
             destinatario: est.correo,
             mensaje: mensaje,
             message: mensaje,
           },
-          'p3KE-_nNVZb3wCTBE'
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
         )
         enviados++;
       } catch (error) {
@@ -458,7 +524,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
           Acciones y Operaciones de la Sección
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           {/* Cargar Sección Presencial o Virtual dependiendo de la modalidad */}
           {seccion.modalidad === 'Presencial' ? (
@@ -498,6 +564,19 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
             <RefreshCw className="w-6 h-6 mb-1" />
             <span>Autocompletar Sección</span>
             <span className="text-xs text-indigo-200 font-normal">(Llenar celdas vacías)</span>
+          </button>
+
+          {/* Limpiar Sección */}
+          <button
+            onClick={handleLimpiarSeccion}
+            disabled={seccion.aprobada || seccion.estudiantes.length === 0}
+            className={`flex flex-col items-center justify-center p-4 text-white rounded-xl shadow-md transition-all font-bold ${
+              seccion.aprobada || seccion.estudiantes.length === 0 ? 'bg-gray-400 cursor-not-allowed opacity-60' : 'bg-rose-600 hover:bg-rose-700 hover:shadow-lg'
+            }`}
+          >
+            <XIcon className="w-6 h-6 mb-1" />
+            <span>Limpiar Sección</span>
+            <span className="text-xs text-rose-200 font-normal">(Quitar a todos)</span>
           </button>
 
         </div>

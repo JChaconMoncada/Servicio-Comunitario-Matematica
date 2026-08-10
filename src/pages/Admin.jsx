@@ -4,9 +4,9 @@ import emailjs from '@emailjs/browser'
 import { 
   Settings, BarChart3, Users, BookOpen, ToggleLeft, ToggleRight, 
   AlertCircle, CheckCircle, Lock, LogOut, Search, PlusCircle, 
-  Calendar, ChevronRight, Eye, Grid, FileSpreadsheet, X
+  Calendar, ChevronRight, Eye, Grid, FileSpreadsheet, X, Trash2, RefreshCw
 } from 'lucide-react'
-import { informaticaSubjects } from '../data/subjects'
+import { departamentoSubjects } from '../data/subjects'
 import { useInscripcion } from '../context/InscripcionContext'
 import ModalDetalleEstudiante from '../components/ModalDetalleEstudiante'
 import VistaSeccionDetalle from '../components/VistaSeccionDetalle'
@@ -75,7 +75,7 @@ function Admin() {
 
   // Formulario para Crear Sección (Página 4)
   const [formSeccionPresencial, setFormSeccionPresencial] = useState({
-    materia: informaticaSubjects[0],
+    materia: departamentoSubjects[0],
     seccion: '01',
     aula: '15C',
     profesor: 'Desiree Suarez',
@@ -83,7 +83,7 @@ function Admin() {
   })
 
   const [formSeccionVirtual, setFormSeccionVirtual] = useState({
-    materia: informaticaSubjects[0],
+    materia: departamentoSubjects[0],
     seccion: '10',
     aula: 'Aula Virtual 1',
     profesor: 'Miguel Urbina',
@@ -100,9 +100,12 @@ function Admin() {
     solicitudes,
     secciones,
     historialChoques,
+    eliminarSolicitudDeMateria,
     crearSeccion,
     eliminarSeccion,
-    generarDatosPruebaGlobal
+    generarDatosPruebaGlobal,
+    autocompletarTodasLasSecciones,
+    refrescarDatos
   } = useInscripcion()
 
   // Solo las solicitudes del periodo académico actualmente seleccionado
@@ -180,14 +183,14 @@ function Admin() {
       const storedAdminPassword = localStorage.getItem('adminPassword') || 'admin123'
       try {
         await emailjs.send(
-          'service_omar_angola', 
-          'template_UNET',       
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
           {
             destinatario: recoveryEmail,
             mensaje: `Has solicitado recuperar tu contraseña del Panel Admin. Tu contraseña actual es: ${storedAdminPassword}`,
             message: `Has solicitado recuperar tu contraseña del Panel Admin. Tu contraseña actual es: ${storedAdminPassword}`,
           },
-          'p3KE-_nNVZb3wCTBE'
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
         )
         setRecoveryMessage('¡Correo enviado! Revisa tu bandeja de entrada.')
       } catch (error) {
@@ -248,7 +251,7 @@ function Admin() {
                 </div>
                 <h1 className="text-3xl font-extrabold text-unet-blue mb-2">Acceso de Personal</h1>
                 <p className="text-gray-600 text-sm">
-                  Departamento de Informática - UNET
+                  Departamento de Matemática y Física - UNET
                 </p>
               </div>
 
@@ -388,16 +391,27 @@ function Admin() {
                 </span>
               </div>
               <p className="text-gray-600 text-xs md:text-sm mt-1">
-                Gestiona el sistema de inscripciones tardías del Departamento de Informática
+                Gestiona el sistema de inscripciones tardías del Departamento de Matemática y Física
               </p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center px-3 md:px-4 py-2 border-2 border-red-500 text-red-500 font-bold rounded-xl hover:bg-red-500 hover:text-white transition-all text-xs md:text-sm self-start md:self-auto"
-            >
-              <LogOut className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-              Cerrar Sesión
-            </button>
+            <div className="flex items-center gap-2 self-start md:self-auto">
+              <button
+                onClick={() => {
+                  refrescarDatos()
+                }}
+                className="flex items-center justify-center px-3 md:px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-200 font-bold rounded-xl hover:bg-emerald-100 transition-all text-xs md:text-sm"
+              >
+                <RefreshCw className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                Actualizar Datos
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center px-3 md:px-4 py-2 border-2 border-red-500 text-red-500 font-bold rounded-xl hover:bg-red-500 hover:text-white transition-all text-xs md:text-sm"
+              >
+                <LogOut className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
 
           {/* Menú Superior de Navegación de Vistas del Administrador (Navegación del Documento) */}
@@ -555,7 +569,7 @@ function Admin() {
                   Habilita o deshabilita las materias disponibles para la inscripción tardía
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {informaticaSubjects.map((materia, index) => (
+                  {departamentoSubjects.map((materia, index) => (
                     <div
                       key={index}
                       className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
@@ -740,6 +754,7 @@ function Admin() {
                             <ul className="space-y-2 text-sm">
                               {[
                                 { color: 'bg-green-500', label: 'Inscrito' },
+                                { color: 'bg-blue-400', label: 'Pre-asignado' },
                                 { color: 'bg-purple-600', label: 'Choque de Horario' },
                                 { color: 'bg-orange-500', label: 'Exceso de UC' },
                                 { color: 'bg-red-500', label: 'Bajo Índice' },
@@ -802,7 +817,14 @@ function Admin() {
                                 sec.estudiantes.some(e => e.cedula === sol.cedula && e.verificado)
                               )
 
-                              const estado = estaVerificado ? 'verde' : estadoSolicitud
+                              const seccionAsignada = !estaVerificado && !esRechazado 
+                                ? secciones.find(sec => 
+                                    sec.materia === materiaSeleccionadaDetalle && 
+                                    sec.estudiantes.some(e => e.cedula === sol.cedula)
+                                  )
+                                : null;
+
+                              const estado = estaVerificado ? 'verde' : (seccionAsignada ? 'azul' : estadoSolicitud)
 
                               return (
                                 <tr key={index} className="hover:bg-blue-50/40 transition-colors">
@@ -811,10 +833,13 @@ function Admin() {
                                   <td className="py-3 px-4 text-gray-700">{sol.cedula}</td>
                                   <td className="py-3 px-4 text-unet-blue underline">{sol.correo}</td>
                                   
-                                  {/* Columna Estado (Verde=Asignado, Rojo=Bajo Índice, Anaranjado=Exceso UC, Morado=Choque, Gris=Pendiente) */}
+                                  {/* Columna Estado (Verde=Asignado, Azul=Pre-asignado, Rojo=Bajo Índice, Anaranjado=Exceso UC, Morado=Choque, Gris=Pendiente) */}
                                   <td className="py-3 px-4 text-center">
                                     {estado === 'verde' && (
                                       <span className="w-6 h-6 rounded-full bg-green-500 inline-block shadow-sm" title="Inscrito"></span>
+                                    )}
+                                    {estado === 'azul' && (
+                                      <span className="w-6 h-6 rounded-full bg-blue-400 inline-block shadow-sm" title={`Pre-asignado en la Secci\u00F3n ${seccionAsignada?.seccion}`}></span>
                                     )}
                                     {estado === 'rojo' && (
                                       <span className="w-6 h-6 rounded-full bg-red-500 inline-block shadow-sm" title="Bajo Índice"></span>
@@ -832,13 +857,26 @@ function Admin() {
 
                                   {/* Columna Detalle de Estudiante (Icono modal emergente - Página 4) */}
                                   <td className="py-3 px-4 text-center">
-                                    <button
-                                      onClick={() => setEstudianteModal(sol)}
-                                      className="p-2 bg-blue-100 text-unet-blue rounded-xl hover:bg-unet-blue hover:text-white transition-all shadow-sm"
-                                      title="Ver detalle del estudiante"
-                                    >
-                                      <Eye className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex justify-center items-center gap-2">
+                                      <button
+                                        onClick={() => setEstudianteModal(sol)}
+                                        className="p-2 bg-blue-100 text-unet-blue rounded-xl hover:bg-unet-blue hover:text-white transition-all shadow-sm"
+                                        title="Ver detalle del estudiante"
+                                      >
+                                        <Eye className="w-5 h-5" />
+                                      </button>
+                                      <button
+                                        onClick={async () => {
+                                          if (window.confirm(`¿Estás seguro de que deseas ELIMINAR a ${sol.nombre} de la demanda de ${materiaSeleccionadaDetalle}? Esta acción no se puede deshacer.`)) {
+                                            await eliminarSolicitudDeMateria(sol.id, materiaSeleccionadaDetalle)
+                                          }
+                                        }}
+                                        className="p-2 bg-red-100 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                                        title="Eliminar solicitud"
+                                      >
+                                        <Trash2 className="w-5 h-5" />
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               )
@@ -878,7 +916,7 @@ function Admin() {
                         onChange={(e) => setFormSeccionPresencial({ ...formSeccionPresencial, materia: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500"
                       >
-                        {informaticaSubjects.map((m, i) => (
+                        {departamentoSubjects.map((m, i) => (
                           <option key={i} value={m}>{m}</option>
                         ))}
                       </select>
@@ -957,7 +995,7 @@ function Admin() {
                         onChange={(e) => setFormSeccionVirtual({ ...formSeccionVirtual, materia: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500"
                       >
-                        {informaticaSubjects.map((m, i) => (
+                        {departamentoSubjects.map((m, i) => (
                           <option key={i} value={m}>{m}</option>
                         ))}
                       </select>
@@ -1030,11 +1068,24 @@ function Admin() {
           {/* VISTA 4: VISTA DEL ESTADO DE LAS SESIONES (Página 5) */}
           {activeTab === 'estado_sesiones' && (
             <div className="space-y-8 animate-fadeIn">
-              <div>
-                <h2 className="text-2xl font-bold text-unet-blue">Vista del Estado de las Sesiones</h2>
-                <p className="text-gray-600 text-sm">
-                  Explora las secciones creadas por buscador y filtro de modalidad. Haz clic en una sección para gestionarla.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-unet-blue">Vista del Estado de las Sesiones</h2>
+                  <p className="text-gray-600 text-sm">
+                    Explora las secciones creadas por buscador y filtro de modalidad. Haz clic en una sección para gestionarla.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (window.confirm('¿Estás seguro de autocompletar todas las secciones pendientes? Esto llenará los cupos de todas las secciones usando los estudiantes en espera.')) {
+                      autocompletarTodasLasSecciones();
+                    }
+                  }}
+                  className="bg-unet-blue hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center shrink-0"
+                >
+                  <Users className="w-5 h-5 mr-2" />
+                  Cargar Todos
+                </button>
               </div>
 
               {/* Buscador de Materias (Página 5) */}

@@ -14,7 +14,7 @@ function Header() {
             <span className="font-bold leading-tight text-[10px] sm:text-xs md:text-sm lg:text-base uppercase tracking-wide">
               Universidad Nacional Experimental del Táchira
               <span className="block font-semibold text-white/90">Vicerrectorado Académico</span>
-              <span className="block font-semibold text-white/90">Decanato de Docencia Departamento de Informática</span>
+              <span className="block font-semibold text-white/90">Decanato de Docencia Departamento de Matemática y Física</span>
             </span>
           </Link>
           

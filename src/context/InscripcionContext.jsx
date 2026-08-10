@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { informaticaSubjects, MAX_MATERIAS_POR_ESTUDIANTE } from '../data/subjects'
+import { departamentoSubjects, MAX_MATERIAS_POR_ESTUDIANTE } from '../data/subjects'
 import { pensumMaterias } from '../data/pensum'
 import emailjs from '@emailjs/browser'
 
@@ -18,8 +18,8 @@ export const InscripcionProvider = ({ children }) => {
   const [periodoActivo, setPeriodoActivo] = useState('Semestre 2026-1')
   const [inscripcionHabilitada, setInscripcionHabilitada] = useState(true)
   const [materiasHabilitadas, setMateriasHabilitadas] = useState(
-    informaticaSubjects.reduce((acc, materia) => {
-      acc[materia] = true
+    departamentoSubjects.reduce((acc, materia) => {
+      acc[materia] = false
       return acc
     }, {})
   )
@@ -29,90 +29,93 @@ export const InscripcionProvider = ({ children }) => {
   const [historialChoques, setHistorialChoques] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const refrescarDatos = async () => {
+    setLoading(true)
+    try {
+      // Cargar secciones
+      const { data: seccionesData, error: seccionesError } = await supabase
+        .from('secciones')
+        .select('*')
+      
+      if (seccionesError) throw seccionesError
+
+      // Cargar estudiantes de las secciones
+      const { data: estudiantesData, error: estudiantesError } = await supabase
+        .from('secciones_estudiantes')
+        .select('*')
+      
+      if (estudiantesError) throw estudiantesError
+
+      // Formatear secciones
+      const seccionesFormateadas = seccionesData.map(sec => {
+        const estudiantes = estudiantesData
+          .filter(e => e.seccion_id === sec.id)
+          .sort((a, b) => a.nro - b.nro)
+        return {
+          ...sec,
+          capacidadMax: sec.capacidad_max,
+          aprobada: sec.aprobada || false,
+          estudiantes: estudiantes.map(e => ({
+            id: e.id,
+            nro: e.nro,
+            nombre: e.nombre,
+            cedula: e.cedula,
+            correo: e.correo,
+            verificado: e.verificado
+          }))
+        }
+      })
+
+      setSecciones(seccionesFormateadas)
+
+      // Cargar materias habilitadas
+      const { data: materiasData, error: materiasError } = await supabase
+        .from('materias_habilitadas')
+        .select('*')
+      
+      if (!materiasError && materiasData) {
+        const matMap = { ...materiasHabilitadas }
+        materiasData.forEach(m => {
+          matMap[m.nombre] = m.habilitada
+        })
+        setMateriasHabilitadas(matMap)
+      }
+
+      // Cargar solicitudes con sus materias
+      const { data: solicitudesData, error: solicitudesError } = await supabase
+        .from('solicitudes')
+        .select('*, solicitudes_materias(*)')
+        .order('created_at', { ascending: true })
+        .order('nro', { ascending: true })
+      
+      if (!solicitudesError) {
+        const solFormateadas = solicitudesData.map(s => ({
+          ...s,
+          materiasSolicitadas: s.solicitudes_materias || []
+        }))
+        setSolicitudes(solFormateadas)
+      }
+
+      // Cargar historial de choques de horario (más reciente primero)
+      const { data: historialData, error: historialError } = await supabase
+        .from('historial_choques_horario')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!historialError && historialData) {
+        setHistorialChoques(historialData)
+      }
+
+    } catch (error) {
+      console.error("Error cargando datos de Supabase:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Cargar datos iniciales desde Supabase
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Cargar secciones
-        const { data: seccionesData, error: seccionesError } = await supabase
-          .from('secciones')
-          .select('*')
-        
-        if (seccionesError) throw seccionesError
-
-        // Cargar estudiantes de las secciones
-        const { data: estudiantesData, error: estudiantesError } = await supabase
-          .from('secciones_estudiantes')
-          .select('*')
-        
-        if (estudiantesError) throw estudiantesError
-
-        // Formatear secciones
-        const seccionesFormateadas = seccionesData.map(sec => {
-          const estudiantes = estudiantesData
-            .filter(e => e.seccion_id === sec.id)
-            .sort((a, b) => a.nro - b.nro)
-          return {
-            ...sec,
-            capacidadMax: sec.capacidad_max,
-            aprobada: sec.aprobada || false,
-            estudiantes: estudiantes.map(e => ({
-              id: e.id,
-              nro: e.nro,
-              nombre: e.nombre,
-              cedula: e.cedula,
-              correo: e.correo,
-              verificado: e.verificado
-            }))
-          }
-        })
-
-        setSecciones(seccionesFormateadas)
-
-        // Cargar materias habilitadas
-        const { data: materiasData, error: materiasError } = await supabase
-          .from('materias_habilitadas')
-          .select('*')
-        
-        if (!materiasError && materiasData) {
-          const matMap = { ...materiasHabilitadas }
-          materiasData.forEach(m => {
-            matMap[m.nombre] = m.habilitada
-          })
-          setMateriasHabilitadas(matMap)
-        }
-
-        // Cargar solicitudes con sus materias
-        const { data: solicitudesData, error: solicitudesError } = await supabase
-          .from('solicitudes')
-          .select('*, solicitudes_materias(*)')
-        
-        if (!solicitudesError) {
-          const solFormateadas = solicitudesData.map(s => ({
-            ...s,
-            materiasSolicitadas: s.solicitudes_materias || []
-          }))
-          setSolicitudes(solFormateadas)
-        }
-
-        // Cargar historial de choques de horario (más reciente primero)
-        const { data: historialData, error: historialError } = await supabase
-          .from('historial_choques_horario')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (!historialError && historialData) {
-          setHistorialChoques(historialData)
-        }
-
-      } catch (error) {
-        console.error("Error cargando datos de Supabase:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
+    refrescarDatos()
   }, [])
 
   const toggleInscripciones = () => {
@@ -126,13 +129,18 @@ export const InscripcionProvider = ({ children }) => {
       [materia]: nuevoEstado
     }))
     
-    await supabase
+    const { error } = await supabase
       .from('materias_habilitadas')
       .upsert({ nombre: materia, habilitada: nuevoEstado })
+
+    if (error) {
+      console.error('Error guardando materia habilitada en Supabase:', error)
+      alert(`Hubo un error al guardar en la base de datos: ${error.message}`)
+    }
   }
 
   const getMateriasHabilitadas = () => {
-    return informaticaSubjects.filter(materia => materiasHabilitadas[materia])
+    return departamentoSubjects.filter(materia => materiasHabilitadas[materia])
   }
 
   // Agregar nueva solicitud del formulario de estudiante
@@ -285,9 +293,9 @@ export const InscripcionProvider = ({ children }) => {
   }
 
   // Cargar estudiantes a una sección desde las solicitudes
-  const cargarEstudiantesASeccion = async (seccionId, cantidadMax) => {
+  const cargarEstudiantesASeccion = async (seccionId, cantidadMax, silent = false) => {
     const sec = secciones.find(s => s.id === seccionId)
-    if (!sec) return
+    if (!sec) return 0
 
     // Obtener estudiantes que ya están en esta sección
     const cedulasYaEnSeccion = new Set(sec.estudiantes.map(e => e.cedula))
@@ -301,27 +309,28 @@ export const InscripcionProvider = ({ children }) => {
       })
 
     // Filtrar solicitudes: estudiantes que pidieron esta materia en el periodo activo y no están asignados ni rechazados
-    const candidatos = solicitudes.filter(sol => {
-      if (sol.periodo && sol.periodo !== periodoActivo) return false
-      if (cedulasEnOtrasSecciones.has(sol.cedula)) return false
-      return sol.materiasSolicitadas && sol.materiasSolicitadas.some(m => 
-        m.materia === sec.materia && 
-        m.estado !== 'rojo' && 
-        m.estado !== 'anaranjado' &&
-        m.estado !== 'morado'
-      )
-    })
+    const candidatos = solicitudes
+      .filter(sol => {
+        if (sol.periodo && sol.periodo !== periodoActivo) return false
+        if (cedulasEnOtrasSecciones.has(sol.cedula)) return false
+        return sol.materiasSolicitadas && sol.materiasSolicitadas.some(m => 
+          m.materia === sec.materia && 
+          m.estado !== 'rojo' && 
+          m.estado !== 'anaranjado' &&
+          m.estado !== 'morado'
+        )
+      })
 
     if (candidatos.length === 0) {
-      alert(`No hay estudiantes pendientes por asignar para ${sec.materia}. Todos ya fueron asignados o no hay solicitudes.`)
-      return
+      if (!silent) alert(`No hay estudiantes pendientes por asignar para ${sec.materia}. Todos ya fueron asignados o no hay solicitudes.`)
+      return 0
     }
 
     // Cuántos cupos hay disponibles
     const cuposDisponibles = cantidadMax - sec.estudiantes.length
     if (cuposDisponibles <= 0) {
-      alert('Esta sección ya está llena. No hay cupos disponibles.')
-      return
+      if (!silent) alert('Esta sección ya está llena. No hay cupos disponibles.')
+      return 0
     }
 
     // Tomar solo los que caben
@@ -345,8 +354,8 @@ export const InscripcionProvider = ({ children }) => {
 
     if (error) {
       console.error('Error cargando estudiantes:', error)
-      alert('Error al cargar estudiantes: ' + error.message)
-      return
+      if (!silent) alert('Error al cargar estudiantes: ' + error.message)
+      return 0
     }
 
     // Actualizar estado local
@@ -364,7 +373,8 @@ export const InscripcionProvider = ({ children }) => {
       return { ...s, estudiantes: [...s.estudiantes, ...nuevosEstudiantes] }
     }))
 
-    alert(`Se cargaron ${nuevosEstudiantes.length} estudiante(s) a la sección ${sec.seccion} de ${sec.materia}.`)
+    if (!silent) alert(`Se cargaron ${nuevosEstudiantes.length} estudiante(s) a la sección ${sec.seccion} de ${sec.materia}.`)
+    return nuevosEstudiantes.length;
   }
 
   // Autocompletar celdas vacías de una sección (llena los cupos restantes)
@@ -373,6 +383,22 @@ export const InscripcionProvider = ({ children }) => {
     if (!secTarget) return
     const capacidad = secTarget.capacidadMax || secTarget.capacidad_max
     await cargarEstudiantesASeccion(seccionId, capacidad)
+  }
+
+  // Autocompletar todas las secciones pendientes (carga masiva)
+  const autocompletarTodasLasSecciones = async () => {
+    let totalCargados = 0;
+    const seccionesPendientes = secciones.filter(s => !s.aprobada);
+    
+    for (const sec of seccionesPendientes) {
+      const capacidad = sec.capacidadMax || sec.capacidad_max;
+      if (sec.estudiantes.length < capacidad) {
+        const cargados = await cargarEstudiantesASeccion(sec.id, capacidad, true);
+        if (cargados) totalCargados += cargados;
+      }
+    }
+    
+    alert(`Autocompletado masivo finalizado. Se cargaron un total de ${totalCargados} estudiante(s) en las secciones.`);
   }
 
   // Marcar fila de estudiante como verificado (Verde en la lista)
@@ -433,6 +459,60 @@ export const InscripcionProvider = ({ children }) => {
       const reindex = copy.map((est, i) => ({ ...est, nro: i + 1 }))
       return { ...s, estudiantes: reindex }
     }))
+  }
+
+  // Limpiar todos los estudiantes de una sección
+  const limpiarSeccion = async (seccionId) => {
+    const sec = secciones.find(s => s.id === seccionId)
+    if (!sec || sec.aprobada || sec.estudiantes.length === 0) return
+
+    // Revertir el estado a 'gris' en solicitudes_materias si estaban 'verde'
+    const cedulas = sec.estudiantes.map(e => e.cedula)
+    if (cedulas.length > 0) {
+      const solicitudesEstudiantes = solicitudes.filter(s => cedulas.includes(s.cedula))
+      const idsMateriasAResetear = []
+      
+      solicitudesEstudiantes.forEach(sol => {
+        const mat = sol.materiasSolicitadas?.find(m => m.materia === sec.materia && m.estado === 'verde')
+        if (mat) idsMateriasAResetear.push(mat.id)
+      })
+
+      if (idsMateriasAResetear.length > 0) {
+        await supabase
+          .from('solicitudes_materias')
+          .update({ estado: 'gris' })
+          .in('id', idsMateriasAResetear)
+          
+        setSolicitudes(prev => prev.map(sol => {
+          if (!cedulas.includes(sol.cedula)) return sol
+          return {
+            ...sol,
+            materiasSolicitadas: sol.materiasSolicitadas.map(m => 
+              idsMateriasAResetear.includes(m.id) ? { ...m, estado: 'gris' } : m
+            )
+          }
+        }))
+      }
+    }
+
+    // Eliminar de Supabase (secciones_estudiantes)
+    const { error } = await supabase
+      .from('secciones_estudiantes')
+      .delete()
+      .eq('seccion_id', seccionId)
+
+    if (error) {
+      console.error('Error limpiando sección:', error)
+      return { success: false, error: error.message }
+    }
+
+    // Actualizar estado local
+    setSecciones(prev => prev.map(s => {
+      if (s.id !== seccionId) return s
+      return { ...s, estudiantes: [] }
+    }))
+    
+    return { success: true }
   }
 
   // Agregar nueva fila (aumentar capacidad)
@@ -543,14 +623,14 @@ export const InscripcionProvider = ({ children }) => {
 
     try {
       await emailjs.send(
-        'service_omar_angola',
-        'template_UNET',
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
         {
           destinatario: solicitud.correo,
           mensaje: mensajeCorreo,
           message: mensajeCorreo,
         },
-        'p3KE-_nNVZb3wCTBE'
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       )
     } catch (err) {
       console.error("Error enviando correo de rechazo:", err)
@@ -738,12 +818,28 @@ export const InscripcionProvider = ({ children }) => {
       console.warn('Columna aprobada en BD:', err)
     }
 
-    // 2. Buscar materiasSolicitadas de esta materia con estado 'morado' (choque) para resetear a 'gris'
+    // 1.5 Marcar a todos los estudiantes de la sección como verificados (verde)
+    const estudiantesIds = secTarget.estudiantes.map(e => e.id).filter(id => id);
+    if (estudiantesIds.length > 0) {
+      await supabase
+        .from('secciones_estudiantes')
+        .update({ verificado: true })
+        .in('id', estudiantesIds);
+    }
+
+    // 2. Buscar materiasSolicitadas para resetear choques (morado -> gris) y aprobar inscritos (-> verde)
     const idsMorados = []
+    const idsVerdes = []
+    const cedulasEnSeccion = secTarget.estudiantes.map(e => e.cedula);
+
     solicitudes.forEach(sol => {
       sol.materiasSolicitadas?.forEach(m => {
-        if (m.materia === secTarget.materia && m.estado === 'morado') {
-          idsMorados.push(m.id)
+        if (m.materia === secTarget.materia) {
+          if (m.estado === 'morado') {
+            idsMorados.push(m.id)
+          } else if (cedulasEnSeccion.includes(sol.cedula) && m.estado !== 'verde') {
+            idsVerdes.push(m.id)
+          }
         }
       })
     })
@@ -755,20 +851,34 @@ export const InscripcionProvider = ({ children }) => {
         .in('id', idsMorados)
     }
 
-    // 3. Actualizar estado local de secciones
+    if (idsVerdes.length > 0) {
+      await supabase
+        .from('solicitudes_materias')
+        .update({ estado: 'verde' })
+        .in('id', idsVerdes)
+    }
+
+    // 3. Actualizar estado local de secciones (aprobada y estudiantes verificados)
     setSecciones(prev => prev.map(s => {
       if (s.id !== seccionId) return s
-      return { ...s, aprobada: true }
+      return { 
+        ...s, 
+        aprobada: true,
+        estudiantes: s.estudiantes.map(e => ({ ...e, verificado: true }))
+      }
     }))
 
-    // 4. Actualizar estado local de solicitudes (morado -> gris)
-    if (idsMorados.length > 0) {
+    // 4. Actualizar estado local de solicitudes (morado -> gris, otros -> verde)
+    if (idsMorados.length > 0 || idsVerdes.length > 0) {
       setSolicitudes(prev => prev.map(sol => {
-        const tieneMorado = sol.materiasSolicitadas?.some(m => idsMorados.includes(m.id))
-        if (!tieneMorado) return sol
+        const tieneCambio = sol.materiasSolicitadas?.some(m => idsMorados.includes(m.id) || idsVerdes.includes(m.id))
+        if (!tieneCambio) return sol
         const mats = sol.materiasSolicitadas.map(m => {
           if (idsMorados.includes(m.id)) {
             return { ...m, estado: 'gris' }
+          }
+          if (idsVerdes.includes(m.id)) {
+            return { ...m, estado: 'verde' }
           }
           return m
         })
@@ -780,7 +890,7 @@ export const InscripcionProvider = ({ children }) => {
   }
 
   // Generar 60 solicitudes de prueba para una materia
-  const generarDatosPrueba = async (materiaTarget = 'Introducción a la Ingeniería en Informática', cantidad = 60) => {
+  const generarDatosPrueba = async (materiaTarget = 'Matemática 1', cantidad = 60) => {
     const nombresDemo = [
       'Alejandro Pérez', 'María Rodríguez', 'Carlos Gómez', 'Ana Fernández', 'José Luis Martínez',
       'Daniela Sánchez', 'Gabriel López', 'Patricia Díaz', 'Luis Eduardo Torres', 'Sofia Benítez',
@@ -847,7 +957,7 @@ export const InscripcionProvider = ({ children }) => {
 
   // Generar N solicitudes de prueba distribuidas aleatoriamente entre las materias habilitadas actuales
   const generarDatosPruebaGlobal = async (cantidad = 60) => {
-    const materiasDisponibles = informaticaSubjects.filter(m => materiasHabilitadas[m])
+    const materiasDisponibles = departamentoSubjects.filter(m => materiasHabilitadas[m])
     if (materiasDisponibles.length === 0) {
       return { success: false, error: 'No hay materias habilitadas para generar solicitudes de prueba.' }
     }
@@ -931,6 +1041,39 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, count: solData.length }
   }
 
+  // Eliminar definitivamente a un estudiante de la lista de solicitudes de una materia
+  const eliminarSolicitudDeMateria = async (solicitudId, materiaNombre) => {
+    const sol = solicitudes.find(s => s.id === solicitudId)
+    if (!sol) return { success: false, error: 'Solicitud no encontrada' }
+
+    const mat = sol.materiasSolicitadas.find(m => m.materia === materiaNombre)
+    if (!mat) return { success: false, error: 'Materia no encontrada en la solicitud' }
+
+    // 1. Eliminar de Supabase (solo de la materia específica, no la solicitud completa)
+    const { error } = await supabase
+      .from('solicitudes_materias')
+      .delete()
+      .eq('id', mat.id)
+
+    if (error) {
+      console.error("Error eliminando solicitud de materia:", error)
+      return { success: false, error: error.message }
+    }
+
+    // 2. Actualizar estado local
+    setSolicitudes(prev => prev.map(s => {
+      if (s.id !== solicitudId) return s
+      return {
+        ...s,
+        materiasSolicitadas: s.materiasSolicitadas.filter(m => m.id !== mat.id)
+      }
+    }))
+
+    // 3. (Opcional) Si queremos limpiar la solicitud completa cuando se queda sin materias, 
+    // lo haríamos aquí, pero por ahora conservamos sus datos generales.
+    return { success: true }
+  }
+
   return (
     <InscripcionContext.Provider
       value={{
@@ -951,14 +1094,18 @@ export const InscripcionProvider = ({ children }) => {
         eliminarSeccion,
         cargarEstudiantesASeccion,
         autocompletarSeccion,
+        autocompletarTodasLasSecciones,
+        limpiarSeccion,
         marcarVerificado,
         marcarNoInscrito,
         agregarFilaCupo,
         rechazarEstudiante,
         resolverChoqueHorario,
         aprobarSeccion,
+        eliminarSolicitudDeMateria,
         generarDatosPrueba,
         generarDatosPruebaGlobal,
+        refrescarDatos,
         loading
       }}
     >

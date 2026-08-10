@@ -16,9 +16,9 @@ function App() {
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
-              {/* El inicio ya es la vista del Departamento de Informática, así que
-                  la ruta antigua redirige para no romper enlaces existentes. */}
-              <Route path="/informatica" element={<Navigate to="/" replace />} />
+              {/* El inicio ya es la vista del Departamento de Matemática y Física, así que
+                   redirigimos /matematica a / para mantener la URL limpia */}
+              <Route path="/matematica" element={<Navigate to="/" replace />} />
               <Route path="/inscripcion" element={<Inscripcion />} />
               <Route path="/pensum" element={<Pensum />} />
               <Route path="/admin" element={<Admin />} />

@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS secciones (
   modalidad TEXT NOT NULL,
   aula TEXT,
   profesor TEXT,
+  horario TEXT,
   capacidad_max INT NOT NULL,
+  aprobada BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -78,5 +80,10 @@ CREATE TABLE IF NOT EXISTS historial_choques_horario (
   seccion_destino TEXT, -- NULL si no se pudo transferir (queda pendiente)
   transferido BOOLEAN NOT NULL DEFAULT false,
   periodo TEXT,
+  horario TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE secciones ADD COLUMN IF NOT EXISTS horario TEXT;
+ALTER TABLE secciones ADD COLUMN IF NOT EXISTS aprobada BOOLEAN DEFAULT false;
+ALTER TABLE historial_choques_horario ADD COLUMN IF NOT EXISTS horario TEXT;

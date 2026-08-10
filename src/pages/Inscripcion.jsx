@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { User, Mail, FileText, CheckCircle, AlertCircle, BookOpen, Layers } from 'lucide-react'
 import { useInscripcion } from '../context/InscripcionContext'
 import { pensumMaterias } from '../data/pensum'
-import { informaticaSubjects, MAX_MATERIAS_POR_ESTUDIANTE as MAX_MATERIAS } from '../data/subjects'
+import { departamentoSubjects, MAX_MATERIAS_POR_ESTUDIANTE as MAX_MATERIAS } from '../data/subjects'
 
 function Inscripcion() {
   const [searchParams] = useSearchParams()
@@ -32,9 +32,9 @@ function Inscripcion() {
   const [errors, setErrors] = useState({})
   const [submitted, setSubmitted] = useState(false)
   
-  const { inscripcionHabilitada, materiasHabilitadas, agregarSolicitud } = useInscripcion()
-  // Permitir seleccionar cualquier materia de informaticaSubjects
-  const materiasDisponibles = informaticaSubjects
+  const { inscripcionHabilitada, materiasHabilitadas, agregarSolicitud, solicitudes, getMateriasHabilitadas } = useInscripcion()
+  // Mostrar únicamente las materias que han sido habilitadas por el jefe de departamento
+  const materiasDisponibles = getMateriasHabilitadas()
 
   const validateEmail = (email) => {
     return email.endsWith('@unet.edu.ve')
@@ -43,15 +43,26 @@ function Inscripcion() {
   // Obtener todas las prelaciones directas e indirectas de una materia
   const getAllPrelacionesIds = (materiaNombre) => {
     const materiaObj = pensumMaterias.find(p => p.nombre === materiaNombre)
-    if (!materiaObj || !materiaObj.prelaciones) return []
-    let ids = [...materiaObj.prelaciones]
-    materiaObj.prelaciones.forEach(preId => {
+    if (!materiaObj) return []
+    
+    let ids = [...(materiaObj.prelaciones || [])]
+    
+    // Heredar prelaciones del corequisito para efectos de bloqueo en cadena
+    if (materiaObj.corequisito) {
+      const coreqObj = pensumMaterias.find(p => p.id === materiaObj.corequisito)
+      if (coreqObj && coreqObj.prelaciones) {
+        ids = [...ids, ...coreqObj.prelaciones]
+      }
+    }
+
+    let allIds = [...ids]
+    ids.forEach(preId => {
       const preObj = pensumMaterias.find(p => p.id === preId)
       if (preObj) {
-        ids = [...ids, ...getAllPrelacionesIds(preObj.nombre)]
+        allIds = [...allIds, ...getAllPrelacionesIds(preObj.nombre)]
       }
     })
-    return [...new Set(ids)]
+    return [...new Set(allIds)]
   }
 
   // Nombres de todas las prelaciones (directas e indirectas) de una materia.
@@ -82,11 +93,35 @@ function Inscripcion() {
   const getOpcionesParaCampo = (index) => {
     const otras = materiasSeleccionadas.filter((m, i) => i !== index && m && m.trim() !== '')
     const bloqueadas = new Set()
+    
+    // Determinar la carrera seleccionada (Ingeniería o Psicología)
+    let carreraActual = null
+    for (let m of otras) {
+      const obj = pensumMaterias.find(p => p.nombre === m)
+      if (obj && obj.carrera) {
+        carreraActual = obj.carrera
+        break
+      }
+    }
+
     otras.forEach(m => {
       bloqueadas.add(m)
       getMateriasEnCadena(m).forEach(nombre => bloqueadas.add(nombre))
     })
-    return materiasDisponibles.filter(m => m === materiasSeleccionadas[index] || !bloqueadas.has(m))
+    
+    return materiasDisponibles.filter(m => {
+      if (m === materiasSeleccionadas[index]) return true
+      if (bloqueadas.has(m)) return false
+      
+      // Si ya hay una carrera seleccionada, bloquear las materias de la otra carrera
+      if (carreraActual) {
+        const mObj = pensumMaterias.find(p => p.nombre === m)
+        if (mObj && mObj.carrera && mObj.carrera !== carreraActual) {
+          return false
+        }
+      }
+      return true
+    })
   }
 
   // Validar si entre las materias seleccionadas hay alguna que prela a otra
@@ -160,12 +195,16 @@ function Inscripcion() {
       newErrors.cedula = 'La cédula es requerida'
     } else if (!/^\d+$/.test(formData.cedula)) {
       newErrors.cedula = 'La cédula debe contener solo números'
+    } else if (solicitudes.some(s => s.cedula === formData.cedula.trim())) {
+      newErrors.cedula = 'Esta cédula ya tiene una solicitud registrada. No puedes hacer otra.'
     }
     
     if (!formData.correo.trim()) {
       newErrors.correo = 'El correo es requerido'
     } else if (!validateEmail(formData.correo)) {
       newErrors.correo = 'El correo debe ser del dominio @unet.edu.ve'
+    } else if (solicitudes.some(s => s.correo.toLowerCase() === formData.correo.trim().toLowerCase())) {
+      newErrors.correo = 'Este correo ya tiene una solicitud registrada. No puedes hacer otra.'
     }
     
     const validas = materiasSeleccionadas.filter(m => m.trim() !== '')
@@ -255,7 +294,7 @@ function Inscripcion() {
                 </div>
               </div>
               <Link to="/" className="btn-primary inline-block">
-                Volver al Departamento de Informática
+                Volver al Departamento de Matemática y Física
               </Link>
             </div>
           </div>
@@ -272,7 +311,7 @@ function Inscripcion() {
           <div className="text-center mb-8 md:mb-10">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-unet-blue mb-2">Inscripción Tardía</h1>
             <p className="text-gray-600 text-sm md:text-base">
-              Completa el formulario para solicitar tu inscripción tardía en el Departamento de Informática
+              Completa el formulario para solicitar tu inscripción tardía en el Departamento de Matemática y Física
             </p>
           </div>
 
@@ -440,7 +479,7 @@ function Inscripcion() {
 
           <div className="mt-8 text-center">
             <Link to="/" className="text-unet-blue font-semibold hover:underline flex items-center justify-center">
-              ← Volver al Departamento de Informática
+              ← Volver al Departamento de Matemática y Física
             </Link>
           </div>
 

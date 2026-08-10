@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BookOpen, FileText, Clock, Shield, Phone, Mail, MapPin, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react'
-import { informaticaSubjects } from '../data/subjects'
+import { departamentoSubjects } from '../data/subjects'
 import { useInscripcion } from '../context/InscripcionContext'
 import Carrusel from '../components/Carrusel'
 
@@ -30,12 +30,12 @@ const infoDepartamento = [
   {
     icono: Phone,
     titulo: 'Teléfono',
-    texto: '+58 274 123 4567'
+    texto: '(0414) 707 7573'
   },
   {
     icono: Mail,
     titulo: 'Correo',
-    texto: 'informat@unet.edu.ve'
+    texto: 'matyfis@unet.edu.ve'
   },
   {
     icono: MapPin,
@@ -57,7 +57,7 @@ function Home() {
   const { secciones } = useInscripcion()
 
   // Cuadrícula 4x4 = 16 materias por diapositiva del carrusel
-  const gruposMaterias = agrupar(informaticaSubjects, 16)
+  const gruposMaterias = agrupar(departamentoSubjects, 16)
   const gruposInfo = agrupar(infoDepartamento, 3)
 
   // Calcular qué materias tienen actualmente secciones abiertas con cupo disponible
@@ -78,16 +78,6 @@ function Home() {
 
   let listaMateriasConCupo = Object.values(materiasConCupoMap)
 
-  // Si aún no se han registrado secciones con cupo en la BD, mostrar asignaturas de ejemplo
-  if (listaMateriasConCupo.length === 0) {
-    const materiasEjemplo = ['Computación 1', 'Computación 2', 'Programación 1', 'Estructura de Datos', 'Base de Datos 1', 'Sistemas Operativos']
-    listaMateriasConCupo = materiasEjemplo.map(m => ({
-      materia: m,
-      cuposLibres: 5,
-      seccionesAbiertas: 1
-    }))
-  }
-
   return (
     <div className="min-h-screen bg-white space-y-0">
 
@@ -103,7 +93,7 @@ function Home() {
                   Cómo realizar tu inscripción
                 </h2>
                 <p className="text-gray-600 text-sm md:text-base mb-6">
-                  Inscripciones tardías del Departamento de Informática. Sigue estos pasos para
+                  Inscripciones tardías del Departamento de Matemática y Física. Sigue estos pasos para
                   solicitar tu cupo en las asignaturas disponibles.
                 </p>
 
@@ -210,41 +200,49 @@ function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {listaMateriasConCupo.map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-2xl border-2 border-emerald-400/80 shadow-md hover:shadow-xl hover:border-emerald-500 transition-all p-6 flex flex-col justify-between group relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+            {listaMateriasConCupo.length > 0 ? (
+              listaMateriasConCupo.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white rounded-2xl border-2 border-emerald-400/80 shadow-md hover:shadow-xl hover:border-emerald-500 transition-all p-6 flex flex-col justify-between group relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
 
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="inline-flex items-center text-xs font-bold bg-emerald-500 text-white px-3 py-1 rounded-full shadow-xs">
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Cupos Abiertos
-                    </span>
-                    <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      {item.cuposLibres} cupo(s)
-                    </span>
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="inline-flex items-center text-xs font-bold bg-emerald-500 text-white px-3 py-1 rounded-full shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Cupos Abiertos
+                      </span>
+                      <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                        {item.cuposLibres} cupo(s)
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-extrabold text-unet-blue mb-2 group-hover:text-emerald-700 transition-colors">
+                      {item.materia}
+                    </h3>
+
+                    <p className="text-gray-500 text-xs font-medium mb-6">
+                      {item.seccionesAbiertas > 1 ? `${item.seccionesAbiertas} secciones con disponibilidad` : 'Sección disponible para solicitud'}
+                    </p>
                   </div>
 
-                  <h3 className="text-lg font-extrabold text-unet-blue mb-2 group-hover:text-emerald-700 transition-colors">
-                    {item.materia}
-                  </h3>
-
-                  <p className="text-gray-500 text-xs font-medium mb-6">
-                    {item.seccionesAbiertas > 1 ? `${item.seccionesAbiertas} secciones con disponibilidad` : 'Sección disponible para solicitud'}
-                  </p>
+                  <Link
+                    to={`/inscripcion?materia=${encodeURIComponent(item.materia)}`}
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-center text-sm shadow-sm transition-all flex items-center justify-center space-x-2"
+                  >
+                    <span>Solicitar Cupo</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </div>
-
-                <Link
-                  to={`/inscripcion?materia=${encodeURIComponent(item.materia)}`}
-                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-center text-sm shadow-sm transition-all flex items-center justify-center space-x-2"
-                >
-                  <span>Solicitar Cupo</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm">
+                <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-gray-700 mb-1">Sin Oferta Activa</h3>
+                <p className="text-gray-500 font-medium">Actualmente no hay materias con cupos disponibles registradas en el sistema.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
