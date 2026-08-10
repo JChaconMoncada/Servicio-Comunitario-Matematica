@@ -464,7 +464,17 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                               )
                             }
 
-                            // --- Dos botones principales ---
+                            // Si ya está verificado/inscrito, solo mostramos el texto
+                            if (est.verificado) {
+                              return (
+                                <span className="inline-flex items-center text-sm font-bold text-green-600">
+                                  <CheckCircle className="w-4 h-4 mr-1.5" />
+                                  Inscrito
+                                </span>
+                              )
+                            }
+
+                            // --- Dos botones principales (para estudiantes pendientes) ---
                             return (
                               <div className="flex items-center justify-center gap-2">
                                 <button

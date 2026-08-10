@@ -114,6 +114,7 @@ function Admin() {
 
   const [isGenerandoDemoGlobal, setIsGenerandoDemoGlobal] = useState(false)
   const [leyendaAbierta, setLeyendaAbierta] = useState(false)
+  const [searchEstudianteGlobal, setSearchEstudianteGlobal] = useState('')
 
   // ===== Estadísticas del periodo =====
   // Total que solicitaron cupo: estudiantes únicos con al menos una solicitud.
@@ -686,6 +687,16 @@ function Admin() {
                           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-unet-blue text-sm"
                         />
                       </div>
+                      <div className="relative w-full md:w-72 flex-shrink-0">
+                        <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder="Buscar por cédula o correo..."
+                          value={searchEstudianteGlobal}
+                          onChange={(e) => setSearchEstudianteGlobal(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-unet-blue text-sm"
+                        />
+                      </div>
                       <button
                         onClick={handleGenerarDemoGlobal}
                         disabled={isGenerandoDemoGlobal}
@@ -703,8 +714,21 @@ function Admin() {
                     {Object.keys(materiasHabilitadas)
                       .filter(m => materiasHabilitadas[m] && m.toLowerCase().includes(searchInscriptosMateria.toLowerCase()))
                       .map((materiaNombre, idx) => {
-                      const filtrados = solicitudesDelPeriodo.filter(s => s.materiasSolicitadas.some(m => m.materia === materiaNombre))
+                      let filtrados = solicitudesDelPeriodo.filter(s => s.materiasSolicitadas.some(m => m.materia === materiaNombre))
                       
+                      // Filtrado adicional si se está buscando un estudiante específico
+                      if (searchEstudianteGlobal.trim() !== '') {
+                        const term = searchEstudianteGlobal.toLowerCase().trim()
+                        filtrados = filtrados.filter(est => 
+                          est.cedula.toLowerCase().includes(term) || 
+                          est.correo.toLowerCase().includes(term) ||
+                          est.nombre.toLowerCase().includes(term)
+                        )
+                      }
+                      
+                      // Si hay una búsqueda de estudiante activa y esta materia no tiene resultados, la ocultamos
+                      if (searchEstudianteGlobal.trim() !== '' && filtrados.length === 0) return null;
+
                       return (
                         <div 
                           key={idx}
@@ -766,6 +790,17 @@ function Admin() {
                       ← Volver al control de hojas de cálculo
                     </button>
                     <div className="flex items-center gap-3">
+                      <div className="relative w-full md:w-64 flex-shrink-0">
+                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                        <input
+                          type="text"
+                          placeholder="Buscar por cédula o correo..."
+                          value={searchEstudianteGlobal}
+                          onChange={(e) => setSearchEstudianteGlobal(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-unet-blue text-sm"
+                        />
+                      </div>
+                      
                       {/* Leyenda de colores de estado */}
                       <div className="relative">
                         <button
@@ -835,6 +870,15 @@ function Admin() {
                         <tbody className="divide-y divide-gray-200">
                           {solicitudesDelPeriodo
                             .filter(s => s.materiasSolicitadas.some(m => m.materia === materiaSeleccionadaDetalle))
+                            .filter(s => {
+                              if (searchEstudianteGlobal.trim() === '') return true;
+                              const term = searchEstudianteGlobal.toLowerCase().trim();
+                              return (
+                                s.cedula.toLowerCase().includes(term) || 
+                                s.correo.toLowerCase().includes(term) ||
+                                s.nombre.toLowerCase().includes(term)
+                              );
+                            })
                             .map((sol, index) => {
                               const matObj = sol.materiasSolicitadas.find(m => m.materia === materiaSeleccionadaDetalle)
                               
