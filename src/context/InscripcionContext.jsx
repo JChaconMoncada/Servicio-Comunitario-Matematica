@@ -583,7 +583,7 @@ export const InscripcionProvider = ({ children }) => {
   }
 
   // Rechazar estudiante por límite de UC/índice/choque y notificarle.
-  const rechazarEstudiante = async (solicitud, reglasUC, razon, motivo = 'exceso_uc', seccionId = null, indexEstudiante = null) => {
+  const rechazarEstudiante = async (solicitud, reglasUC, razon, motivo = 'exceso_uc', seccionId = null, indexEstudiante = null, materiaFiltro = null, omitirCorreo = false) => {
     
     // Identificar qué materias solicitadas caen en la restricción
     const materiasARechazar = solicitud.materiasSolicitadas.filter(mReq => {
@@ -592,9 +592,13 @@ export const InscripcionProvider = ({ children }) => {
     })
 
     // Si no encontró por UC específica pero la lista no está vacía y reglasUC incluye todas las UCs posibles (o motivo choque/bajo indice), tomar todas
-    const materiasFinales = materiasARechazar.length > 0 ? materiasARechazar : (
+    let materiasFinales = materiasARechazar.length > 0 ? materiasARechazar : (
       (motivo === 'choque_horario' || motivo === 'bajo_indice') ? solicitud.materiasSolicitadas : []
     )
+
+    if (materiaFiltro) {
+      materiasFinales = materiasFinales.filter(m => m.materia === materiaFiltro)
+    }
 
     if (materiasFinales.length === 0) {
       return { success: false, error: 'El estudiante no solicitó materias que coincidan con esta restricción de UC.' }
@@ -656,23 +660,25 @@ export const InscripcionProvider = ({ children }) => {
       return { ...s, estudiantes: copy.map((e, i) => ({ ...e, nro: i + 1 })) }
     }))
 
-    // 4. Enviar correo de notificación
-    const nombresMateriasRechazadas = materiasFinales.map(m => m.materia).join(', ')
-    const mensajeCorreo = `Hola ${solicitud.nombre}, tu solicitud para las siguientes materias ha sido rechazada por el departamento: ${nombresMateriasRechazadas}.\n\nRazón: ${razon}`
+    // 4. Enviar correo de notificación (si no se omitió)
+    if (!omitirCorreo) {
+      const nombresMateriasRechazadas = materiasFinales.map(m => m.materia).join(', ')
+      const mensajeCorreo = `Hola ${solicitud.nombre}, tu solicitud para las siguientes materias ha sido rechazada por el departamento: ${nombresMateriasRechazadas}.\n\nRazón: ${razon}`
 
-    try {
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        {
-          destinatario: solicitud.correo,
-          mensaje: mensajeCorreo,
-          message: mensajeCorreo,
-        },
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      )
-    } catch (err) {
-      console.error("Error enviando correo de rechazo:", err)
+      try {
+        await emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          {
+            destinatario: solicitud.correo,
+            mensaje: mensajeCorreo,
+            message: mensajeCorreo,
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        )
+      } catch (err) {
+        console.error("Error enviando correo de rechazo:", err)
+      }
     }
 
     // 5. Si el motivo es choque de horario, registrar en el historial de choques

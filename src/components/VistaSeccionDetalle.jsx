@@ -485,7 +485,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                                         if (!sol) return
                                         if (window.confirm(`¿Rechazar a ${est.nombre} por Exceso de UC para materias de ${uc} UC? Se eliminará de esta lista.`)) {
                                           await enviarNotificacionIndividual(est, 'Exceso de UC');
-                                          await rechazarEstudiante(sol, [uc], `Rechazado por exceso de UC para materias de ${uc} UC en la materia ${seccion.materia}.`, 'exceso_uc', seccion.id, index)
+                                          await rechazarEstudiante(sol, [uc], `Rechazado por exceso de UC para materias de ${uc} UC en la materia ${seccion.materia}.`, 'exceso_uc', seccion.id, index, seccion.materia, true)
                                           setFilaExpandida(null)
                                         }
                                       }}
@@ -500,7 +500,7 @@ export default function VistaSeccionDetalle({ seccionId, onVolver }) {
                                         if (window.confirm(`¿Rechazar a ${est.nombre} por Bajo Índice para materias de ${uc} UC? Se eliminará de esta lista.`)) {
                                           if (!sol) return
                                           await enviarNotificacionIndividual(est, 'Bajo Índice Académico');
-                                          await rechazarEstudiante(sol, [uc], `Rechazado por bajo índice académico para materias de ${uc} UC en la materia ${seccion.materia}.`, 'bajo_indice', seccion.id, index)
+                                          await rechazarEstudiante(sol, [uc], `Rechazado por bajo índice académico para materias de ${uc} UC en la materia ${seccion.materia}.`, 'bajo_indice', seccion.id, index, seccion.materia, true)
                                           setFilaExpandida(null)
                                         }
                                       }}
