@@ -1060,33 +1060,24 @@ export const InscripcionProvider = ({ children }) => {
     return { success: true, count: solData.length }
   }
 
-  // Eliminar definitivamente a un estudiante de la lista de solicitudes de una materia
-  const eliminarSolicitudDeMateria = async (solicitudId, materiaNombre) => {
+  // Eliminar definitivamente a un estudiante (y todas sus materias solicitadas)
+  const eliminarSolicitudCompleta = async (solicitudId) => {
     const sol = solicitudes.find(s => s.id === solicitudId)
     if (!sol) return { success: false, error: 'Solicitud no encontrada' }
 
-    const mat = sol.materiasSolicitadas.find(m => m.materia === materiaNombre)
-    if (!mat) return { success: false, error: 'Materia no encontrada en la solicitud' }
-
-    // 1. Eliminar de Supabase (solo de la materia específica, no la solicitud completa)
+    // 1. Eliminar de Supabase (la tabla solicitudes tiene CASCADE a solicitudes_materias)
     const { error } = await supabase
-      .from('solicitudes_materias')
+      .from('solicitudes')
       .delete()
-      .eq('id', mat.id)
+      .eq('id', solicitudId)
 
     if (error) {
-      console.error("Error eliminando solicitud de materia:", error)
+      console.error("Error eliminando la solicitud:", error)
       return { success: false, error: error.message }
     }
 
-    // 2. Actualizar estado local
-    setSolicitudes(prev => prev.map(s => {
-      if (s.id !== solicitudId) return s
-      return {
-        ...s,
-        materiasSolicitadas: s.materiasSolicitadas.filter(m => m.id !== mat.id)
-      }
-    }))
+    // 2. Actualizar estado local eliminando toda la solicitud
+    setSolicitudes(prev => prev.filter(s => s.id !== solicitudId))
 
     // 3. (Opcional) Si queremos limpiar la solicitud completa cuando se queda sin materias, 
     // lo haríamos aquí, pero por ahora conservamos sus datos generales.
@@ -1122,7 +1113,7 @@ export const InscripcionProvider = ({ children }) => {
         rechazarEstudiante,
         resolverChoqueHorario,
         aprobarSeccion,
-        eliminarSolicitudDeMateria,
+        eliminarSolicitudCompleta,
         generarDatosPrueba,
         generarDatosPruebaGlobal,
         refrescarDatos,
